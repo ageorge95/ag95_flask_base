@@ -16,6 +16,6 @@ def build():
         data = dict(request.args)           # ?a=1&b=2 → {"a":"1","b":"2"}
         if request.is_json:
             data.update(request.get_json(silent=True) or {})
-        return jsonify(data)
+        return jsonify(['I received your call, here are the parameters that you have sent:', data])
 
     return bp
