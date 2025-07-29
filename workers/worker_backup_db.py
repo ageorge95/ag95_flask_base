@@ -4,7 +4,7 @@ from . import register_worker
 from ag95 import SqLiteDbbackup
 
 @register_worker(worker_cycle_time_s=6*60*60,
-                 worker_name='worker_backup_db')
+                 worker_name=os.path.basename(__file__))
 class Worker:
     def __init__(self):
         self.working = False
