@@ -1,3 +1,4 @@
+import json
 from . import register_worker
 
 # @register_worker(worker_cycle_time_s=5,
@@ -5,6 +6,8 @@ from . import register_worker
 class Worker:
     def __init__(self):
         self.working = False
+        with open('configuration.json', 'r') as f:
+            self.config = json.load(f)
 
     def is_working(self):
         return self.working
