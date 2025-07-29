@@ -2,11 +2,14 @@ from flask import (Flask,
                    url_for)
 from markupsafe import Markup
 from waitress import serve
-from .routes import BLUEPRINTS
+from .routes import (load_all_blueprints,
+                     BLUEPRINTS)
 
 class Server:
     def __init__(self):
         self.flask = Flask(__name__, static_folder=None)
+
+        load_all_blueprints()
 
         # register every collected blueprint
         for bp in BLUEPRINTS:
