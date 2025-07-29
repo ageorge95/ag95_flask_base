@@ -1,6 +1,8 @@
 import json
 import os
 from . import register_worker
+from logging import getLogger
+from traceback import format_exc
 
 @register_worker(worker_cycle_time_s=5,
                  worker_name=os.path.basename(__file__))
@@ -9,6 +11,8 @@ class Worker:
         self.working = False
         with open('configuration.json', 'r') as f:
             self.config = json.load(f)
+
+        self._log = getLogger(f'{os.path.basename(__file__)}.log')
 
     def is_working(self):
         return self.working
@@ -26,4 +30,9 @@ class Worker:
         1 is a bad response, meaning that the worker could not do its job
         0 is a good response, meaning that the worker accomplished its job
         '''
-        return 0
+        try:
+            self._log.info('worker completed successfully')
+            return 0
+        except:
+            self._log.error(f'worker failed:\n{format_exc(chain=False)}')
+            return 1

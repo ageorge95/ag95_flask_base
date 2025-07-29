@@ -12,6 +12,7 @@ from threading import Thread
 from multiprocessing import Process
 from ag95 import (stdin_watcher,
                   configure_logger,
+                  configure_loggers,
                   SqLiteDbMigration)
 
 def set_terminal_title(title: str):
@@ -94,8 +95,10 @@ if __name__ == "__main__":
     with open("configuration.json") as f:
         cfg = json.load(f)
 
-    # configure the logger
-    configure_logger(log_name='logs/main.log')
+    # configure the loggers
+    # one main logger and one logger for each worker
+    configure_logger(log_name=os.path.join('logs', 'main.log'))
+    configure_loggers(log_names=[os.path.join('logs', f'{_}.log') for _ in os.listdir('workers')])
     _log = logging.getLogger('main')
 
     # start the main method

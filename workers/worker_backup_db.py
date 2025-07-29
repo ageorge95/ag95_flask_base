@@ -1,6 +1,8 @@
 import json
 import os
 from . import register_worker
+from logging import getLogger
+from traceback import format_exc
 from ag95 import SqLiteDbbackup
 
 @register_worker(worker_cycle_time_s=6*60*60,
@@ -10,6 +12,8 @@ class Worker:
         self.working = False
         with open('configuration.json', 'r') as f:
             self.config = json.load(f)
+
+        self._log = getLogger(f'{os.path.basename(__file__)}.log')
 
     def is_working(self):
         return self.working
@@ -30,6 +34,8 @@ class Worker:
         try:
             SqLiteDbbackup(input_filepath=os.path.join('db', 'database.sqlite'),
                            output_filepath=os.path.join(self.config['db_backup_path'], 'database.sqlite')).backup_db()
+            self._log.info('worker completed successfully')
             return 0
         except:
+            self._log.error(f'worker failed:\n{format_exc(chain=False)}')
             return 1
