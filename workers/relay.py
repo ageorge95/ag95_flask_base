@@ -2,7 +2,8 @@ import os
 import time
 
 from . import (load_all_workers,
-               WORKERS)
+               WORKERS,
+               DO_NOT_RUN_ANY_WORKER_BOOL)
 from datetime import datetime
 from ag95 import SqLiteDbWrapper
 from threading import Thread
@@ -53,6 +54,9 @@ def _detached_execution(worker):
     worker.clear_working()
 
 def start_workers_relay():
+    if DO_NOT_RUN_ANY_WORKER_BOOL:
+        return
+
     # first wait for some time to allow stdin_watcher() to remove a potential leftover exit file
     time.sleep(2)
 
