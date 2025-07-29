@@ -51,7 +51,10 @@ def _detached_execution(worker):
     # mark the worker as free
     worker.clear_working()
 
-def start():
+def start_workers_relay():
+    # first wait for some time to allow stdin_watcher() to remove a potential leftover exit file
+    time.sleep(2)
+
     while True:
         for worker in WORKERS:
             if not worker.is_working():
