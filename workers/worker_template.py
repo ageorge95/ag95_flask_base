@@ -1,7 +1,7 @@
 from . import register_worker
 
-@register_worker(worker_cycle_time_s=5,
-                 worker_name='my_worker_name')
+# @register_worker(worker_cycle_time_s=5,
+#                  worker_name='my_worker_name')
 class Worker:
     def __init__(self):
         self.working = False
