@@ -32,6 +32,9 @@ def _start_server_slave(port):
     Server().serve(port=port)
 
 def _start_server_watcher(server_process):
+    # first wait for some time to allow stdin_watcher() to remove a potential leftover exit file
+    time.sleep(2)
+
     while True:
         if os.path.isfile('exit'):
             server_process.terminate()
