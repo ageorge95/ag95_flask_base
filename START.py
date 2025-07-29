@@ -7,10 +7,12 @@ import logging
 from traceback import format_exc
 from server.app import Server
 from workers.relay import start
+from db.structure import database_structure
 from threading import Thread
 from multiprocessing import Process
 from ag95 import (stdin_watcher,
-                  configure_logger)
+                  configure_logger,
+                  SqLiteDbMigration)
 
 def set_terminal_title(title: str):
     if not sys.stdout.isatty() or "PYCHARM_HOSTED" in os.environ:
@@ -71,9 +73,15 @@ def start_stdin_watcher():
                   init_action=(lambda: os.remove('exit') if os.path.isfile('exit') else None),
                   trigger_action=(lambda: open('exit', 'w')))
 
+def initialize_db():
+    SqLiteDbMigration(database_path=os.path.join('db', 'database.sqlite'),
+                      all_tables_def=database_structure).migrate()
+
 def main():
 
     set_terminal_title(cfg['framework_title'])
+
+    initialize_db()
 
     start_server()
 

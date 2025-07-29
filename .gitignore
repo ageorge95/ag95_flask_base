@@ -4,3 +4,4 @@
 activate.bat
 /exit
 /logs
+/db/database.sqlite
