@@ -6,6 +6,7 @@ import socket
 import logging
 from traceback import format_exc
 from server.app import Server
+from workers.relay import start
 from threading import Thread
 from multiprocessing import Process
 from ag95 import (stdin_watcher,
@@ -60,6 +61,10 @@ def check_server_started():
     else:
         _log.info(f"⚠️  Timeout waiting for port {cfg['server_port']} – the server may not have started correctly.")
 
+def start_workers():
+    t = Thread(target=start)
+    t.start()
+
 def start_stdin_watcher():
 
     stdin_watcher(trigger_command='exit',
@@ -71,6 +76,8 @@ def main():
     set_terminal_title(cfg['framework_title'])
 
     start_server()
+
+    start_workers()
 
     start_stdin_watcher()
 
