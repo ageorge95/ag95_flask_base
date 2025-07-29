@@ -1,9 +1,10 @@
 import json
 import os
-from . import register_worker
+from .loader import register_worker
 from logging import getLogger
+from ag95 import (configure_logger,
+                  SqLiteDbbackup)
 from traceback import format_exc
-from ag95 import SqLiteDbbackup
 
 @register_worker(worker_cycle_time_s=6*60*60,
                  worker_name=os.path.basename(__file__))
@@ -39,3 +40,7 @@ class Worker:
         except:
             self._log.error(f'worker failed:\n{format_exc(chain=False)}')
             return 1
+
+if __name__ == '__main__':
+    configure_logger(log_name=os.path.join('logs', f'{os.path.basename(__file__)}.log'))
+    Worker().work()
