@@ -3,10 +3,13 @@ import sys
 import os
 import time
 import socket
+import logging
+from traceback import format_exc
 from server.app import Server
 from threading import Thread
+from multiprocessing import Process
 from ag95 import (stdin_watcher,
-                  ThreadMonitor)
+                  configure_logger)
 
 def set_terminal_title(title: str):
     if not sys.stdout.isatty() or "PYCHARM_HOSTED" in os.environ:
@@ -25,19 +28,34 @@ def wait_for_port(host: str, port: int, timeout: float = 5.0):
             time.sleep(0.1)
     return False
 
+def _start_server_slave(port):
+    Server().serve(port=port)
+
+def _start_server_watcher(server_process):
+    while True:
+        if os.path.isfile('exit'):
+            server_process.terminate()
+            _log.info('Server closed gracefully')
+            return
+        time.sleep(0.5)
+
 def start_server():
 
-    return Thread(target=Server().serve,
-                  kwargs=({'port': cfg['server_port']}))
+    p = Process(target=_start_server_slave,
+                kwargs={'port': cfg['server_port']})
+    p.start()
+    _log.info(f"Server launched in detached PID {p.pid}")
+
+    check_server_started()
+
+    t = Thread(target=_start_server_watcher, args=(p,))
+    t.start()
 
 def check_server_started():
-    def slave():
-        if wait_for_port('localhost', cfg['server_port'], timeout=10.0):
-            print(f"🚀 Server is up at http://localhost:{cfg['server_port']}/")
-        else:
-            print(f"⚠️  Timeout waiting for port {cfg['server_port']} – the server may not have started correctly.")
-
-    return Thread(target=slave)
+    if wait_for_port('localhost', cfg['server_port'], timeout=10.0):
+        _log.info(f"🚀 Server is up at http://localhost:{cfg['server_port']}/")
+    else:
+        _log.info(f"⚠️  Timeout waiting for port {cfg['server_port']} – the server may not have started correctly.")
 
 def start_stdin_watcher():
 
@@ -47,14 +65,9 @@ def start_stdin_watcher():
 
 def main():
 
-    watched_threads = []
-
     set_terminal_title(cfg['framework_title'])
 
-    start_server().start()
-    watched_threads.append(check_server_started())
-
-    ThreadMonitor(list_with_threads=watched_threads).start_watching()
+    start_server()
 
     start_stdin_watcher()
 
@@ -63,5 +76,12 @@ if __name__ == "__main__":
     with open("configuration.json") as f:
         cfg = json.load(f)
 
+    # configure the logger
+    configure_logger(log_name='logs/main.log')
+    _log = logging.getLogger('main')
+
     # start the main method
-    main()
+    try:
+        main()
+    except:
+        _log.error(f"Uncaught exception in main():{format_exc(chain=False)}")
