@@ -6,7 +6,7 @@ from .loader import register_route
 ROUTE_NAME = 'my_route_name'
 ROUTE_PREFIX = '/my_route_url_prefix'
 
-@register_route
+# @register_route
 def build():
     bp = Blueprint(ROUTE_NAME, __name__, url_prefix=ROUTE_PREFIX)
 

@@ -5,8 +5,8 @@ from logging import getLogger
 from ag95 import configure_logger
 from traceback import format_exc
 
-@register_worker(worker_cycle_time_s=5,
-                 worker_name=os.path.basename(__file__))
+# @register_worker(worker_cycle_time_s=5,
+#                  worker_name=os.path.basename(__file__))
 class Worker:
     def __init__(self):
         self.working = False
