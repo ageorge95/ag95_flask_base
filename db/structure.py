@@ -6,8 +6,8 @@ database_structure = [
                                      column_type='TEXT'),
                      SqLiteColumnDef(column_name='exec_timestamp',
                                      column_type='INTEGER'),
-                     SqLiteColumnDef(column_name='return_code',
+                     SqLiteColumnDef(column_name='exec_success',
                                      column_type='INTEGER'),
-                     SqLiteColumnDef(column_name='exec_time_s',
+                     SqLiteColumnDef(column_name='exec_duration_s',
                                      column_type='INTEGER')]}
 ]
