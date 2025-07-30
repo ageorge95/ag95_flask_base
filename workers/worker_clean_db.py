@@ -12,8 +12,6 @@ from db.structure import database_structure
 class Worker:
     def __init__(self):
         self.working = False
-        with open('configuration.json', 'r') as f:
-            self.config = json.load(f)
 
         self._log = getLogger(f'{os.path.basename(__file__)}.log')
 
@@ -34,6 +32,9 @@ class Worker:
         0 is a good response, meaning that the worker accomplished its job
         '''
         try:
+            with open('configuration.json', 'r') as f:
+                self.config = json.load(f)
+
             with SqLiteDbWrapper(database_path=os.path.join('db', 'database.sqlite')) as DB:
                 for table_def in database_structure:
                     table_name = table_def['table_name']

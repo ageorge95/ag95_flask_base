@@ -11,8 +11,6 @@ from traceback import format_exc
 class Worker:
     def __init__(self):
         self.working = False
-        with open('configuration.json', 'r') as f:
-            self.config = json.load(f)
 
         self._log = getLogger(f'{os.path.basename(__file__)}.log')
 
@@ -33,6 +31,9 @@ class Worker:
         0 is a good response, meaning that the worker accomplished its job
         '''
         try:
+            with open('configuration.json', 'r') as f:
+                self.config = json.load(f)
+
             SqLiteDbbackup(input_filepath=os.path.join('db', 'database.sqlite'),
                            output_filepath=os.path.join(self.config['db_backup_path'], 'database.sqlite')).backup_db()
             self._log.info('worker completed successfully')

@@ -10,8 +10,6 @@ from traceback import format_exc
 class Worker:
     def __init__(self):
         self.working = False
-        with open('configuration.json', 'r') as f:
-            self.config = json.load(f)
 
         self._log = getLogger(f'{os.path.basename(__file__)}.log')
 
@@ -32,6 +30,9 @@ class Worker:
         0 is a good response, meaning that the worker accomplished its job
         '''
         try:
+            with open('configuration.json', 'r') as f:
+                self.config = json.load(f)
+
             self._log.info('worker completed successfully')
             return 0
         except:
