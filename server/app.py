@@ -1,7 +1,9 @@
+import os
 from flask import (Flask,
                    url_for)
 from markupsafe import Markup
 from waitress import serve
+from ag95 import export_html_templates
 from .routes import (load_all_blueprints,
                      BLUEPRINTS)
 
@@ -9,6 +11,10 @@ class Server:
     def __init__(self):
         self.flask = Flask(__name__, static_folder=None)
 
+        # export ag95 templates
+        export_html_templates(os.path.join(os.path.dirname(__file__), 'templates'))
+
+        # collect and load blueprints
         load_all_blueprints()
 
         # register every collected blueprint
