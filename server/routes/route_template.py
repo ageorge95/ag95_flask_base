@@ -1,3 +1,4 @@
+import json
 from flask import (Blueprint,
                    request,
                    jsonify)
@@ -12,6 +13,9 @@ def build():
 
     @bp.route("/", methods=["GET", "POST"])
     def route_builder():
+        with open('configuration.json', 'r') as f:
+            config = json.load(f)
+
         # merge query-string args and JSON body (if any)
         data = dict(request.args)           # ?a=1&b=2 → {"a":"1","b":"2"}
         if request.is_json:
