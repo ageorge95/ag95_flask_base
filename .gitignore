@@ -6,4 +6,4 @@ activate.bat
 /logs
 /db/database.sqlite
 /db_backup
-/server/templates
+/server/templates/*.html
