@@ -1,6 +1,6 @@
-import json
 import os
 from ._loader import register_worker
+from ._bootstrap import WorkerBootstrap
 from logging import getLogger
 from ag95 import (configure_logger,
                   SqLiteDbWrapper)
@@ -9,20 +9,12 @@ from db.structure import database_structure
 
 @register_worker(worker_cycle_time_s=6*60*60,
                  worker_name=os.path.basename(__file__))
-class Worker:
+class Worker(WorkerBootstrap):
     def __init__(self):
-        self.working = False
+        super().__init__()
 
+        # get a log instance
         self._log = getLogger(f'{os.path.basename(__file__)}.log')
-
-    def is_working(self):
-        return self.working
-
-    def set_working(self):
-        self.working = True
-
-    def clear_working(self):
-        self.working = False
 
     def work(self) -> int:
         '''
@@ -32,8 +24,6 @@ class Worker:
         0 is a good response, meaning that the worker accomplished its job
         '''
         try:
-            with open('configuration.json', 'r') as f:
-                self.config = json.load(f)
 
             with SqLiteDbWrapper(database_path=os.path.join('db', 'database.sqlite')) as DB:
                 for table_def in database_structure:
