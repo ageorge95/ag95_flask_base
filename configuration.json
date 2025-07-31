@@ -1,5 +1,5 @@
 {
   "framework_title": "my_flask_framework",
   "server_port": 5000,
-  "db_backup_path": "db_backup"
+  "db_backup_path": "db_backup_$$COMPUTER_NAME$$"
 }
