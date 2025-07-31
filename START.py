@@ -6,7 +6,7 @@ import socket
 import logging
 from traceback import format_exc
 from server.app import Server
-from workers.relay import start_workers_relay
+from workers._relay import start_workers_relay
 from db.structure import database_structure
 from threading import Thread
 from multiprocessing import Process

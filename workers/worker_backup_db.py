@@ -1,6 +1,6 @@
 import json
 import os
-from .loader import register_worker
+from ._loader import register_worker
 from logging import getLogger
 from ag95 import (configure_logger,
                   SqLiteDbbackup)
