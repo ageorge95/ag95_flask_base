@@ -5,5 +5,7 @@ activate.bat
 /exit
 /logs
 /db/database.sqlite
+/db/database.sqlite-shm
+/db/database.sqlite-wal
 /db_backup*
 /server/templates/*.html

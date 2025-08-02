@@ -2,7 +2,6 @@ import os
 import json
 from datetime import datetime
 from flask import (Blueprint,
-                   request,
                    render_template)
 from ._loader import register_route
 from workers import (load_all_workers,
