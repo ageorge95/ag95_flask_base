@@ -2,7 +2,7 @@ import json
 from flask import (Blueprint,
                    request,
                    jsonify)
-from .loader import register_route
+from ._loader import register_route
 
 ROUTE_NAME = 'my_route_name'
 ROUTE_PREFIX = '/my_route_url_prefix'

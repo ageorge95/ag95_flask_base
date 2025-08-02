@@ -4,7 +4,7 @@ from datetime import datetime
 from flask import (Blueprint,
                    request,
                    render_template)
-from .loader import register_route
+from ._loader import register_route
 from workers import (load_all_workers,
                      WORKERS)
 from ag95 import (SqLiteDbWrapper,
