@@ -1,6 +1,7 @@
 import os
 import time
-
+import subprocess
+import sys
 from . import (load_all_workers,
                WORKERS,
                DO_NOT_RUN_ANY_WORKER_BOOL)
@@ -35,20 +36,29 @@ def _detached_execution(worker):
 
         _log.info(f'Started worker thread for: {worker_name}')
 
-        success = worker.work()
+        p = subprocess.Popen([sys.executable,
+                              '-m',
+                              f'workers.{worker_name}'],
+                             stdin=subprocess.DEVNULL,
+                             close_fds=True
+                             )
+        p.wait()
+
+        exec_return_code = p.returncode
         timestamp_end = datetime.now().timestamp()
         exec_duration_s = round(timestamp_end - timestamp_start,2)
-        _log.info(f'Worker thread {worker_name} completed in {exec_duration_s}s with status: {success}')
+        _log.info(f'Worker thread {worker_name} completed in {exec_duration_s}s with'
+                  f' {'✅' if exec_return_code == 0 else '❌'} exec_return_code: {exec_return_code}')
 
         with SqLiteDbWrapper(database_path=os.path.join('db', 'database.sqlite')) as DB:
             DB.append_in_table(table_name='workers_status',
                                column_names=['worker_name',
                                              'exec_timestamp',
-                                             'exec_success',
+                                             'exec_return_code',
                                              'exec_duration_s'],
                                column_values=[worker_name,
                                               timestamp_end,
-                                              success,
+                                              exec_return_code,
                                               exec_duration_s])
     # mark the worker as free
     worker.clear_working()

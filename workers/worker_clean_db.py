@@ -8,7 +8,7 @@ from traceback import format_exc
 from db.structure import database_structure
 
 @register_worker(worker_cycle_time_s=6*60*60,
-                 worker_name=os.path.basename(__file__))
+                 worker_name=os.path.basename(__file__).replace('.py', ''))
 class Worker(WorkerBootstrap):
     def __init__(self):
         super().__init__()
@@ -40,4 +40,4 @@ class Worker(WorkerBootstrap):
 
 if __name__ == '__main__':
     configure_logger(log_name=os.path.join('logs', f'{os.path.basename(__file__)}.log'))
-    Worker().work()
+    exit(Worker().work())

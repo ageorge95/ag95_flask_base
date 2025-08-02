@@ -37,10 +37,10 @@ def build():
         plots_data_per_worker = dict((_.worker_name, []) for _ in WORKERS)
         for record in db_data:
 
-            ID, TIMESTAMP, worker_name, exec_timestamp, exec_success, exec_duration_s = record
+            ID, TIMESTAMP, worker_name, exec_timestamp, exec_return_code, exec_duration_s = record
 
             plots_data_per_worker[worker_name].append({'datetime': datetime.fromtimestamp(TIMESTAMP),
-                                                       'exec_success': exec_success,
+                                                       'exec_return_code': exec_return_code,
                                                        'exec_duration_s': exec_duration_s})
 
         # build the required graphs
@@ -48,11 +48,11 @@ def build():
         for worker_name, worker_plot_data in plots_data_per_worker.items():
             if worker_plot_data:
                 common_x_axis = [_['datetime'] for _ in worker_plot_data]
-                exec_success_y_axis = [_['exec_success'] for _ in worker_plot_data]
+                exec_return_code_y_axis = [_['exec_return_code'] for _ in worker_plot_data]
                 exec_duration_s_y_axis = [_['exec_duration_s'] for _ in worker_plot_data]
 
-                exec_success_fig = SinglePlot(ScatterPlotDef(x_axis=[common_x_axis],
-                                                             y_axis=[exec_success_y_axis],
+                exec_return_code_fig = SinglePlot(ScatterPlotDef(x_axis=[common_x_axis],
+                                                             y_axis=[exec_return_code_y_axis],
                                                              force_show_until_current_datetime=True,
                                                              grey_out_missing_data_until_current_datetime=True))
                 exec_duration_s_fig = SinglePlot(ScatterPlotDef(x_axis=[common_x_axis],
@@ -65,8 +65,8 @@ def build():
                 # max_exec_time_vs_average_percentage = max_exec_time_vs_average_unit / average_exec_time * 100
                 max_exec_time_vs_average_percentage = 1
                 final_plots.append({'worker_name': worker_name,
-                                    'return_code_html': exec_success_fig.return_html_ScatterPlot(),
-                                    'return_code_values': set(exec_success_y_axis),
+                                    'return_code_html': exec_return_code_fig.return_html_ScatterPlot(),
+                                    'return_code_values': set(exec_return_code_y_axis),
                                     'exec_duration_html': exec_duration_s_fig.return_html_ScatterPlot(),
                                     'exec_time_deviation': round(max_exec_time_vs_average_percentage, 2)})
             else:

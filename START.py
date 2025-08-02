@@ -95,10 +95,8 @@ if __name__ == "__main__":
     with open("configuration.json") as f:
         cfg = json.load(f)
 
-    # configure the loggers
-    # one main logger and one logger for each worker
+    # configure the main logger
     configure_logger(log_name=os.path.join('logs', 'main.log'))
-    configure_loggers(log_names=[os.path.join('logs', f'{_}.log') for _ in os.listdir('workers')])
     _log = logging.getLogger('main')
 
     # start the main method
