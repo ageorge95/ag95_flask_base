@@ -30,8 +30,9 @@ class Worker(WorkerBootstrap):
                     table_name = table_def['table_name']
                     max_history_s = table_def['max_history_s']
 
-                    DB.clear_old_records(table_name=table_name,
-                                         since_time_in_past_s=max_history_s)
+                    if max_history_s > 0:
+                        DB.clear_old_records(table_name=table_name,
+                                             since_time_in_past_s=max_history_s)
             self._log.info('worker completed successfully')
             return 0
         except:
