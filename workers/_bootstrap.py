@@ -1,14 +1,29 @@
 import os
 import json
 
+class Config:
+    def __init__(self):
+        self._load_config()
+
+    def _load_config(self):
+        # load the configuration json file
+        with open('configuration.json', 'r') as f_in:
+            self.config = json.load(f_in)
+
+    def get(self,
+            reload: bool = False):
+
+        if reload:
+            self._load_config()
+
+        return self.config
+
 class WorkerBootstrap:
     def __init__(self):
         # mark as not working by default
         self.working = False
 
-        # load the configuration json file
-        with open('configuration.json', 'r') as f:
-            self.config = json.load(f)
+        self.config = Config()
 
     def is_working(self):
         return self.working
