@@ -12,6 +12,9 @@ class Worker(WorkerBootstrap):
         super().__init__()
 
         # get a log instance
+        configure_logger(log_name=os.path.join('logs', f'{os.path.basename(__file__)}.log'),
+                         backupCount=5,
+                         log_level='INFO')
         self._log = getLogger(f'{os.path.basename(__file__)}.log')
 
     def work(self) -> int:
@@ -31,5 +34,4 @@ class Worker(WorkerBootstrap):
             return 1
 
 if __name__ == '__main__':
-    configure_logger(log_name=os.path.join('logs', f'{os.path.basename(__file__)}.log'))
     exit(Worker().work())
