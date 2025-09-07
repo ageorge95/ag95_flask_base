@@ -40,7 +40,7 @@ def _detached_execution(cls):
     timestamp_start = datetime.now().timestamp()
     if (timestamp_start - worker__last_exec_timestamp) > worker_cycle_time_s:
 
-        _log.info(f'Started worker thread for: {worker_name}')
+        _log.info(f'Starting worker process for: {worker_name}')
 
         p = subprocess.Popen([sys.executable,
                               '-m',
@@ -54,7 +54,7 @@ def _detached_execution(cls):
         exec_return_code = p.returncode
         timestamp_end = datetime.now().timestamp()
         exec_duration_s = round(timestamp_end - timestamp_start,2)
-        _log.info(f'Worker thread {worker_name} completed in {exec_duration_s}s with'
+        _log.info(f'Worker process {worker_name} completed in {exec_duration_s}s with'
                   f' {'✅' if exec_return_code == 0 else '❌'} exec_return_code: {exec_return_code}')
 
         with SqLiteDbWrapper(database_path=os.path.join('db', 'database.sqlite')) as DB:
