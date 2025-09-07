@@ -25,15 +25,6 @@ class WorkerBootstrap:
 
         self.config = Config()
 
-    def is_working(self):
-        return self.working
-
-    def set_working(self):
-        self.working = True
-
-    def clear_working(self):
-        self.working = False
-
     def _should_exit(self):
         possible_exit_filepaths = ['exit',
                                    os.path.join('.', 'exit')]

@@ -9,15 +9,13 @@ def register_worker(_cls=None,
                     worker_cycle_time_s,
                     worker_name):
     def decorator(cls):
-        # instantiate
-        instance = cls()
 
         # attach metadata
-        instance.worker_cycle_time_s = worker_cycle_time_s
-        instance.worker_name = worker_name
+        cls.worker_cycle_time_s = worker_cycle_time_s
+        cls.worker_name = worker_name
 
         # register
-        WORKERS.append(instance)
+        WORKERS.append(cls)
         return cls
 
     # if no args were passed, _cls is the class itself

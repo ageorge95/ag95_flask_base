@@ -7,17 +7,23 @@ from . import (load_all_workers,
                DO_NOT_RUN_ANY_WORKER_BOOL)
 from datetime import datetime
 from ag95 import SqLiteDbWrapper
-from threading import Thread
 from logging import getLogger
 
-def _detached_execution(worker):
-    # mark the worker as in_work
-    worker.set_working()
+_RUNNING_PROCS = {}
+
+def is_busy(worker_name):
+    proc = _RUNNING_PROCS.get(worker_name)
+    if proc and proc.poll() is None:
+        return True
+    _RUNNING_PROCS.pop(worker_name, None)
+    return False
+
+def _detached_execution(cls):
 
     _log = getLogger('main')
 
-    worker_name = worker.worker_name
-    worker_cycle_time_s = worker.worker_cycle_time_s
+    worker_name = cls.worker_name
+    worker_cycle_time_s = cls.worker_cycle_time_s
 
     # get the last execution timestamp
     with SqLiteDbWrapper(database_path=os.path.join('db', 'database.sqlite')) as DB:
@@ -42,6 +48,7 @@ def _detached_execution(worker):
                              stdin=subprocess.DEVNULL,
                              close_fds=True
                              )
+        _RUNNING_PROCS[worker_name] = p
         p.wait()
 
         exec_return_code = p.returncode
@@ -60,8 +67,6 @@ def _detached_execution(worker):
                                               timestamp_end,
                                               exec_return_code,
                                               exec_duration_s])
-    # mark the worker as free
-    worker.clear_working()
 
 def start_workers_relay():
     if DO_NOT_RUN_ANY_WORKER_BOOL:
@@ -69,14 +74,12 @@ def start_workers_relay():
 
     # first wait for some time to allow stdin_watcher() to remove a potential leftover exit file
     time.sleep(2)
-
     load_all_workers()
 
     while True:
-        for worker in WORKERS:
-            if not worker.is_working():
-                t = Thread(target=_detached_execution, args=(worker,))
-                t.start()
+        for cls in WORKERS:
+            if not is_busy(cls.worker_name):
+                _detached_execution(cls)
 
         if os.path.isfile('exit'):
             break
