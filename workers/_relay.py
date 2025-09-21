@@ -1,6 +1,7 @@
 import os
 import time
 import subprocess
+import threading
 import sys
 from . import (load_all_workers,
                WORKERS,
@@ -79,7 +80,8 @@ def start_workers_relay():
     while True:
         for cls in WORKERS:
             if not is_busy(cls.worker_name):
-                _detached_execution(cls)
+                t = threading.Thread(target=_detached_execution,args=(cls,))
+                t.start()
 
         if os.path.isfile('exit'):
             break
