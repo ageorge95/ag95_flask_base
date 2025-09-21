@@ -10,19 +10,44 @@ from datetime import datetime
 from ag95 import SqLiteDbWrapper
 from logging import getLogger
 
-_RUNNING_PROCS = {}
+# A thread-safe class to manage the running processes' dictionary.
+# This encapsulates the dictionary and protects all access with a lock.
+class WorkerManager:
+    def __init__(self):
+        # A dictionary to hold the subprocess objects, protected by a lock.
+        self._running_procs = {}
+        self._lock = threading.Lock()
 
-def is_busy(worker_name):
-    proc = _RUNNING_PROCS.get(worker_name)
-    if proc and proc.poll() is None:
-        return True
-    _RUNNING_PROCS.pop(worker_name, None)
-    return False
+    def is_busy(self, worker_name):
+        """
+        Checks if a worker process is currently running.
+        This operation is protected by a lock to prevent race conditions.
+        """
+        with self._lock:
+            proc = self._running_procs.get(worker_name)
+            # If the process exists and is still running, it's busy.
+            if proc and proc.poll() is None:
+                return True
+            # If the process is not running or doesn't exist, clean up and return False.
+            self._running_procs.pop(worker_name, None)
+            return False
+
+    def add_process(self, worker_name, proc):
+        """
+        Adds a new process to the manager's dictionary.
+        This operation is also protected by a lock.
+        """
+        with self._lock:
+            self._running_procs[worker_name] = proc
+
+# Create a single, thread-safe instance of the manager.
+worker_manager = WorkerManager()
+_log = getLogger('main')
 
 def _detached_execution(cls):
-
-    _log = getLogger('main')
-
+    """
+    Function executed by a new thread to start a worker subprocess.
+    """
     worker_name = cls.worker_name
     worker_cycle_time_s = cls.worker_cycle_time_s
 
@@ -49,7 +74,7 @@ def _detached_execution(cls):
                              stdin=subprocess.DEVNULL,
                              close_fds=True
                              )
-        _RUNNING_PROCS[worker_name] = p
+        worker_manager.add_process(worker_name, p)
         p.wait()
 
         exec_return_code = p.returncode
@@ -79,7 +104,7 @@ def start_workers_relay():
 
     while True:
         for cls in WORKERS:
-            if not is_busy(cls.worker_name):
+            if not worker_manager.is_busy(cls.worker_name):
                 t = threading.Thread(target=_detached_execution,args=(cls,))
                 t.start()
 
