@@ -9,7 +9,6 @@ A minimal, yet extensible boilerplate for building Flask applications with a mod
 * **Modular Design**: Separate modules for server, database, and background workers.
 * **Background Workers**: Easy integration with task queues for asynchronous jobs.
 * **Configuration Management**: Centralized JSON-based configuration.
-* **Cross-Platform Scripts**: `.bat` scripts for Windows convenience.
 * **Requirements Isolated**: `requirements.txt` for dependency management.
 
 ---
@@ -19,10 +18,10 @@ A minimal, yet extensible boilerplate for building Flask applications with a mod
 ```
 ag95_flask_base/
 ├── db/                  # Database migrations & seed scripts
+│   ├── structure.py     # The database structure
 ├── server/              # Flask application package
-│   ├── __init__.py      # Application factory
-│   ├── routes.py        # HTTP route definitions
-│   └── models.py        # ORM models
+│   ├── routes           # HTTP route definitions
+│   └── templates        # html templates
 ├── workers/             # Background worker tasks
 ├── configuration.json   # Application configuration
 ├── requirements.txt     # Python dependencies
@@ -38,7 +37,7 @@ ag95_flask_base/
 
 ### Prerequisites
 
-* Python 3.8 or higher (Python 3.13 is recommended)
+* Python 3.13 is recommended
 
 ### Installation
 
@@ -93,9 +92,12 @@ The Flask server will start on the port specified in your configuration (default
 
 ## Usage
 
-* Define new routes in `server/routes.py`.
+* Define new routes in `server/routes`.
 * Add database models in `db/structure.py`.
 * Implement background tasks in `workers/`.
+
+> **ℹ️INFO:**<br>
+> `routes` and `workers` have templates inside to quickly create your routes/ workers
 
 ---
 
