@@ -15,30 +15,37 @@ from logging import getLogger
 class WorkerManager:
     def __init__(self):
         # A dictionary to hold the subprocess objects, protected by a lock.
-        self._running_procs = {}
+        self._running_workers = []
         self._lock = threading.Lock()
 
     def is_busy(self, worker_name):
         """
-        Checks if a worker process is currently running.
+        Checks if a worker is currently running.
         This operation is protected by a lock to prevent race conditions.
         """
         with self._lock:
-            proc = self._running_procs.get(worker_name)
-            # If the process exists and is still running, it's busy.
-            if proc and proc.poll() is None:
+            # if the worker is still active return True
+            if worker_name in self._running_workers:
                 return True
-            # If the process is not running or doesn't exist, clean up and return False.
-            self._running_procs.pop(worker_name, None)
+
+            # otherwise return False
             return False
 
-    def add_process(self, worker_name, proc):
+    def add_worker(self, worker_name):
         """
-        Adds a new process to the manager's dictionary.
+        Adds a new worker to the manager's list of running workers.
         This operation is also protected by a lock.
         """
         with self._lock:
-            self._running_procs[worker_name] = proc
+            self._running_workers.append(worker_name)
+
+    def remove_worker(self, worker_name):
+        """
+        Removes a worker from the manager's list of running workers.
+        This operation is also protected by a lock.
+        """
+        with self._lock:
+            self._running_workers.remove(worker_name)
 
 # Create a single, thread-safe instance of the manager.
 worker_manager = WorkerManager()
@@ -51,48 +58,57 @@ def _detached_execution(cls):
     worker_name = cls.worker_name
     worker_cycle_time_s = cls.worker_cycle_time_s
 
-    # get the last execution timestamp
-    with SqLiteDbWrapper(database_path=os.path.join('db', 'database.sqlite')) as DB:
-        query_result = DB.return_records(table_name='workers_status',
-                                         where_statement=f"worker_name == '{worker_name}'",
-                                         limit=1,
-                                         order='DESC')
-    if query_result:
-        worker__last_exec_timestamp = query_result[0][1]
-    else:
-        worker__last_exec_timestamp = 0
+    worker_manager.add_worker(worker_name)
 
-    # is it time to run the worker ?
-    timestamp_start = datetime.now().timestamp()
-    if (timestamp_start - worker__last_exec_timestamp) > worker_cycle_time_s:
+    try:
 
-        _log.info(f'Starting worker process for: {worker_name}')
-
-        p = subprocess.Popen([sys.executable,
-                              '-m',
-                              f'workers.{worker_name}'],
-                             stdin=subprocess.DEVNULL,
-                             close_fds=True
-                             )
-        worker_manager.add_process(worker_name, p)
-        p.wait()
-
-        exec_return_code = p.returncode
-        timestamp_end = datetime.now().timestamp()
-        exec_duration_s = round(timestamp_end - timestamp_start,2)
-        _log.info(f'Worker process {worker_name} completed in {exec_duration_s}s with'
-                  f' {'✅' if exec_return_code == 0 else '❌'} exec_return_code: {exec_return_code}')
-
+        # get the last execution timestamp
         with SqLiteDbWrapper(database_path=os.path.join('db', 'database.sqlite')) as DB:
-            DB.append_in_table(table_name='workers_status',
-                               column_names=['worker_name',
-                                             'exec_timestamp',
-                                             'exec_return_code',
-                                             'exec_duration_s'],
-                               column_values=[worker_name,
-                                              timestamp_end,
-                                              exec_return_code,
-                                              exec_duration_s])
+            query_result = DB.return_records(table_name='workers_status',
+                                             where_statement=f"worker_name == '{worker_name}'",
+                                             limit=1,
+                                             order='DESC')
+        if query_result:
+            worker__last_exec_timestamp = query_result[0][1]
+        else:
+            worker__last_exec_timestamp = 0
+
+        # is it time to run the worker ?
+        timestamp_start = datetime.now().timestamp()
+        if (timestamp_start - worker__last_exec_timestamp) > worker_cycle_time_s:
+
+            _log.info(f'Starting worker process for: {worker_name}')
+
+            p = subprocess.Popen([sys.executable,
+                                  '-m',
+                                  f'workers.{worker_name}'],
+                                 stdin=subprocess.DEVNULL,
+                                 close_fds=True
+                                 )
+            p.wait()
+
+            exec_return_code = p.returncode
+            timestamp_end = datetime.now().timestamp()
+            exec_duration_s = round(timestamp_end - timestamp_start,2)
+            _log.info(f'Worker process {worker_name} completed in {exec_duration_s}s with'
+                      f' {'✅' if exec_return_code == 0 else '❌'} exec_return_code: {exec_return_code}')
+
+            with SqLiteDbWrapper(database_path=os.path.join('db', 'database.sqlite')) as DB:
+                DB.append_in_table(table_name='workers_status',
+                                   column_names=['worker_name',
+                                                 'exec_timestamp',
+                                                 'exec_return_code',
+                                                 'exec_duration_s'],
+                                   column_values=[worker_name,
+                                                  timestamp_end,
+                                                  exec_return_code,
+                                                  exec_duration_s])
+
+    except Exception as e:
+        _log.error(f'Unknown error while running {worker_name}: {e}')
+
+    finally:
+        worker_manager.remove_worker(worker_name=worker_name)
 
 def start_workers_relay():
     if DO_NOT_RUN_ANY_WORKER_BOOL:
