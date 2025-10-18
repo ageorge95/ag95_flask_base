@@ -2,12 +2,15 @@ import os
 import json
 
 class Config:
-    def __init__(self):
+    def __init__(self,
+                 config_filepath: str = ''):
+
+        self.config_filepath = 'configuration.json' if not config_filepath else config_filepath
         self._load_config()
 
     def _load_config(self):
         # load the configuration json file
-        with open('configuration.json', 'r') as f_in:
+        with open(self.config_filepath, 'r') as f_in:
             self.config = json.load(f_in)
 
     def get(self,
@@ -19,11 +22,12 @@ class Config:
         return self.config
 
 class WorkerBootstrap:
-    def __init__(self):
+    def __init__(self,
+                 config_filepath: str = ''):
         # mark as not working by default
         self.working = False
 
-        self.config = Config()
+        self.config = Config(config_filepath=config_filepath)
 
     def _should_exit(self):
         possible_exit_filepaths = ['exit',
