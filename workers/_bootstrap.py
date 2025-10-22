@@ -9,13 +9,13 @@ class Config:
         self._load_config()
 
     @staticmethod
-    def deep_merge(base_dict, new_dict):
+    def _deep_merge(base_dict, new_dict):
         """Recursively merge new_dict into base_dict"""
         for key, value in new_dict.items():
             if (key in base_dict and
                     isinstance(base_dict[key], dict) and
                     isinstance(value, dict)):
-                deep_merge(base_dict[key], value)
+                Config._deep_merge(base_dict[key], value)
             else:
                 base_dict[key] = value
         return base_dict
@@ -36,7 +36,7 @@ class Config:
     def save_config(self,
                     new_config_changes: dict = {}):
         if new_config_changes:
-            self.config = Config.deep_merge(self.config, new_config_changes)
+            self.config = Config._deep_merge(self.config, new_config_changes)
             try:
                 with open(self.config_filepath, 'w') as f_out:
                     json.dump(self.config, f_out)
