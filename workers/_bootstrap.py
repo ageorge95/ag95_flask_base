@@ -21,6 +21,17 @@ class Config:
 
         return self.config
 
+    def save_config(self,
+                    new_config_changes: dict = {}):
+        if new_config_changes:
+            self.config |= new_config_changes
+            try:
+                with open(self.config_filepath, 'w') as f_out:
+                    json.dump(self.config, f_out)
+                return True
+            except:
+                return False
+
 class WorkerBootstrap:
     def __init__(self,
                  config_filepath: str = ''):
