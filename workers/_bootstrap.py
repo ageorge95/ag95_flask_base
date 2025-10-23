@@ -39,7 +39,7 @@ class Config:
             self.config = Config._deep_merge(self.config, new_config_changes)
             try:
                 with open(self.config_filepath, 'w') as f_out:
-                    json.dump(self.config, f_out)
+                    json.dump(self.config, f_out, indent=2)
                 return True
             except:
                 return False
