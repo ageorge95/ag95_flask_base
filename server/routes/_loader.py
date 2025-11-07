@@ -15,14 +15,25 @@ def register_route(build_fn):
 
 def load_all_blueprints():
     """
-    Dynamically import every .py in this package so that
-    @register_route decorators run and populate BLUEPRINTS.
+    Dynamically import every .py in this package and all subpackages recursively.
     """
-    package_name = __name__
+    package_name = __name__.rsplit(".", 1)[0]  # root package
     package_path = Path(__file__).parent
 
-    # We want the package root, so strip off '.loader'
-    root = package_name.rsplit(".", 1)[0]
+    def import_recursive(current_path, current_package):
+        for _, name, is_pkg in pkgutil.iter_modules([str(current_path)]):
+            full_name = f"{current_package}.{name}"
 
-    for _, module_name, _ in pkgutil.iter_modules([str(package_path)]):
-        importlib.import_module(f"{root}.{module_name}")
+            if is_pkg:
+                # Recursively import subpackage
+                subpackage_path = current_path / name
+                import_recursive(subpackage_path, full_name)
+            else:
+                # Import module
+                try:
+                    importlib.import_module(full_name)
+                    print(f"✓ Loaded blueprints from: {full_name}")
+                except Exception as e:
+                    print(f"✗ Failed to import {full_name}: {e}")
+
+    import_recursive(package_path, package_name)
