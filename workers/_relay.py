@@ -56,6 +56,7 @@ def _detached_execution(cls):
     Function executed by a new thread to start a worker subprocess.
     """
     worker_name = cls.worker_name
+    worker_module = cls.worker_module
     worker_cycle_time_s = cls.worker_cycle_time_s
 
     worker_manager.add_worker(worker_name)
@@ -81,7 +82,7 @@ def _detached_execution(cls):
 
             p = subprocess.Popen([sys.executable,
                                   '-m',
-                                  f'workers.{worker_name}'],
+                                  worker_module],
                                  stdin=subprocess.DEVNULL,
                                  close_fds=True
                                  )

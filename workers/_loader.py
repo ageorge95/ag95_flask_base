@@ -13,6 +13,7 @@ def register_worker(_cls=None,
         # attach metadata
         cls.worker_cycle_time_s = worker_cycle_time_s
         cls.worker_name = worker_name
+        cls.worker_module = cls.__module__
 
         # register
         WORKERS.append(cls)
@@ -26,14 +27,22 @@ def register_worker(_cls=None,
 
 def load_all_workers():
     """
-    Dynamically import every .py in this package so that
+    Dynamically import every .py in this package and all subpackages recursively.
     @register_worker decorators run and populate WORKERS.
     """
-    package_name = __name__  # here it's 'workers.loader'; we'll tweak below
+    package_name = __name__.rsplit(".", 1)[0]  # root package
     package_path = Path(__file__).parent
 
-    # We want the package root, so strip off '.loader'
-    root = package_name.rsplit(".", 1)[0]
+    def import_recursive(current_path, current_package):
+        for _, name, is_pkg in pkgutil.iter_modules([str(current_path)]):
+            full_name = f"{current_package}.{name}"
 
-    for _, module_name, _ in pkgutil.iter_modules([str(package_path)]):
-        importlib.import_module(f"{root}.{module_name}")
+            if is_pkg:
+                # Recursively import subpackage
+                subpackage_path = current_path / name
+                import_recursive(subpackage_path, full_name)
+            else:
+                # Import module
+                importlib.import_module(full_name)
+
+    import_recursive(package_path, package_name)
