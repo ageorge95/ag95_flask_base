@@ -13,6 +13,9 @@ from ag95 import (SqLiteDbWrapper,
 ROUTE_NAME = 'workers_history'
 ROUTE_PREFIX = '/workers_history'
 
+# load all workers only once at application startup
+load_all_workers()
+
 @register_route
 def build():
     bp = Blueprint(ROUTE_NAME, __name__, url_prefix=ROUTE_PREFIX)
@@ -25,7 +28,6 @@ def build():
 
         # get all valid workers to filter out old workers that are still in the db
         # and query the db for relevant data
-        load_all_workers()
         valid_workers = ','.join(f'"{_.worker_name}"' for _ in WORKERS)
 
         with SqLiteDbWrapper(database_path=os.path.join('db', 'database.sqlite')) as DB:
