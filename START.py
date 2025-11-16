@@ -75,7 +75,7 @@ def start_stdin_watcher():
                   trigger_action=(lambda: open('exit', 'w')))
 
 def initialize_db():
-    SqLiteDbMigration(database_path=os.path.join('db', 'database.sqlite'),
+    SqLiteDbMigration(database_path=os.path.join('db', 'database', 'database.sqlite'),
                       all_tables_def=database_structure).migrate()
 
 def main():

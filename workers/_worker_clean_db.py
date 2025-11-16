@@ -28,7 +28,7 @@ class Worker(WorkerBootstrap):
         '''
         try:
 
-            with SqLiteDbWrapper(database_path=os.path.join('db', 'database.sqlite')) as DB:
+            with SqLiteDbWrapper(database_path=os.path.join('db', 'database', 'database.sqlite')) as DB:
                 for table_def in database_structure:
                     table_name = table_def['table_name']
                     max_history_s = table_def['max_history_s']

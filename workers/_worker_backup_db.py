@@ -30,7 +30,7 @@ class Worker(WorkerBootstrap):
             computer_name = os.environ['COMPUTERNAME'].lower()
             output_folderpath = self.config.get()['db_backup_path'].replace('$$COMPUTER_NAME$$', computer_name)
 
-            SqLiteDbbackup(input_filepath=os.path.join('db', 'database.sqlite'),
+            SqLiteDbbackup(input_filepath=os.path.join('db', 'database', 'database.sqlite'),
                            output_filepath=os.path.join(output_folderpath, 'database.sqlite')).backup_db()
             self._log.info('worker completed successfully')
             return 0

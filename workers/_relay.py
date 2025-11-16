@@ -64,7 +64,7 @@ def _detached_execution(cls):
     try:
 
         # get the last execution timestamp
-        with SqLiteDbWrapper(database_path=os.path.join('db', 'database.sqlite')) as DB:
+        with SqLiteDbWrapper(database_path=os.path.join('db', 'database', 'database.sqlite')) as DB:
             query_result = DB.return_records(table_name='workers_status',
                                              where_statement=f"worker_name == '{worker_name}'",
                                              limit=1,
@@ -94,7 +94,7 @@ def _detached_execution(cls):
             _log.info(f'Worker process {worker_name} completed in {exec_duration_s}s with'
                       f' {'✅' if exec_return_code == 0 else '❌'} exec_return_code: {exec_return_code}')
 
-            with SqLiteDbWrapper(database_path=os.path.join('db', 'database.sqlite')) as DB:
+            with SqLiteDbWrapper(database_path=os.path.join('db', 'database', 'database.sqlite')) as DB:
                 DB.append_in_table(table_name='workers_status',
                                    column_names=['worker_name',
                                                  'exec_timestamp',

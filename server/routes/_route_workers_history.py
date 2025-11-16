@@ -30,7 +30,7 @@ def build():
         # and query the db for relevant data
         valid_workers = ','.join(f'"{_.worker_name}"' for _ in WORKERS)
 
-        with SqLiteDbWrapper(database_path=os.path.join('db', 'database.sqlite')) as DB:
+        with SqLiteDbWrapper(database_path=os.path.join('db', 'database', 'database.sqlite')) as DB:
             db_data = DB.return_records(table_name='workers_status',
                                         where_statement=f'worker_name IN ({valid_workers})')
 
