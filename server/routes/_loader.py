@@ -33,6 +33,7 @@ def register_route(build_fn):
         required_workers = getattr(build_fn, '_worker_prerequisites', None)
         if required_workers:
             for required_worker in required_workers:
+                executed = False
                 for registered_worker in WORKERS:
                     if registered_worker.worker_name == required_worker:
                         return_code = _detached_execution(registered_worker)
@@ -42,13 +43,14 @@ def register_route(build_fn):
                                 'message': f'Worker failed to execute.',
                                 'return_code': return_code
                             }), 503
-                        return
-                return jsonify({
-                        'status': 'error',
-                        'message': f'Worker not found.',
-                        'missing_workers': required_workers,
-                        'existing_workers': [_.worker_name for _ in WORKERS]
-                    }), 503
+                        executed = True
+                if not executed:
+                    return jsonify({
+                            'status': 'error',
+                            'message': f'Worker not found.',
+                            'missing_workers': required_workers,
+                            'existing_workers': [_.worker_name for _ in WORKERS]
+                        }), 503
 
     BLUEPRINTS.append(bp)
     return build_fn
