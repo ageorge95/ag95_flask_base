@@ -7,7 +7,8 @@ from . import (load_all_workers,
                WORKERS,
                DO_NOT_RUN_ANY_WORKER_BOOL)
 from datetime import datetime
-from ag95 import SqLiteDbWrapper
+from ag95 import (SqLiteDbWrapper,
+                  configure_logger)
 from logging import getLogger
 
 # A thread-safe class to manage the running processes' dictionary.
@@ -49,6 +50,11 @@ class WorkerManager:
 
 # Create a single, thread-safe instance of the manager.
 worker_manager = WorkerManager()
+
+# and configure and get an instance of the main logger here as well
+# NOTE: the 'main' logger is available when executed through START->start_workers_relay
+# but when _detached_execution is executed directly (see the route workers prerequisites), the logger is missing
+configure_logger(log_name=os.path.join('logs', 'main.log'))
 _log = getLogger('main')
 
 def _detached_execution(cls,
