@@ -51,7 +51,8 @@ class WorkerManager:
 worker_manager = WorkerManager()
 _log = getLogger('main')
 
-def _detached_execution(cls):
+def _detached_execution(cls,
+                        execute_now_override: bool = False):
     """
     Function executed by a new thread to start a worker subprocess.
     """
@@ -64,15 +65,18 @@ def _detached_execution(cls):
     try:
 
         # get the last execution timestamp
-        with SqLiteDbWrapper(database_path=os.path.join('db', 'database', 'database.sqlite')) as DB:
-            query_result = DB.return_records(table_name='workers_status',
-                                             where_statement=f"worker_name == '{worker_name}'",
-                                             limit=1,
-                                             order='DESC')
-        if query_result:
-            worker__last_exec_timestamp = query_result[0][1]
-        else:
+        if execute_now_override:
             worker__last_exec_timestamp = 0
+        else:
+            with SqLiteDbWrapper(database_path=os.path.join('db', 'database', 'database.sqlite')) as DB:
+                query_result = DB.return_records(table_name='workers_status',
+                                                 where_statement=f"worker_name == '{worker_name}'",
+                                                 limit=1,
+                                                 order='DESC')
+            if query_result:
+                worker__last_exec_timestamp = query_result[0][1]
+            else:
+                worker__last_exec_timestamp = 0
 
         # is it time to run the worker ?
         timestamp_start = datetime.now().timestamp()

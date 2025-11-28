@@ -36,7 +36,7 @@ def register_route(build_fn):
                 executed = False
                 for registered_worker in WORKERS:
                     if registered_worker.worker_name == required_worker:
-                        return_code = _detached_execution(registered_worker)
+                        return_code = _detached_execution(registered_worker, True)
                         if return_code != 0:
                             return jsonify({
                                 'status': 'error',
