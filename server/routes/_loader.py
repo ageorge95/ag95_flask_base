@@ -41,6 +41,7 @@ def register_route(build_fn):
                             return jsonify({
                                 'status': 'error',
                                 'message': f'Worker failed to execute.',
+                                'required_worker': required_worker,
                                 'return_code': return_code
                             }), 503
                         executed = True
