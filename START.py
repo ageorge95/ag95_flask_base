@@ -12,7 +12,6 @@ from threading import Thread
 from multiprocessing import Process
 from ag95 import (stdin_watcher,
                   configure_logger,
-                  configure_loggers,
                   SqLiteDbMigration)
 
 def set_terminal_title(title: str):
