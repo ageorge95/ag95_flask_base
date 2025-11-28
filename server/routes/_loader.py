@@ -3,7 +3,8 @@ import pkgutil
 from pathlib import Path
 from flask import jsonify
 from workers._relay import _detached_execution
-from workers import WORKERS
+from workers import (WORKERS,
+                     DO_NOT_RUN_ANY_WORKER_BOOL)
 
 BLUEPRINTS = []
 
@@ -31,7 +32,7 @@ def register_route(build_fn):
     @bp.before_request
     def check_prerequisites():
         required_workers = getattr(build_fn, '_worker_prerequisites', None)
-        if required_workers:
+        if required_workers and not DO_NOT_RUN_ANY_WORKER_BOOL:
             for required_worker in required_workers:
                 executed = False
                 for registered_worker in WORKERS:
