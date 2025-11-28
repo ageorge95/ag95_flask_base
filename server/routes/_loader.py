@@ -1,15 +1,55 @@
 import importlib
 import pkgutil
 from pathlib import Path
+from flask import jsonify
+from workers._relay import _detached_execution
+from workers import WORKERS
 
 BLUEPRINTS = []
+
+def register_worker_prerequisite(workers):
+    """
+    Decorator to tag a route build method with worker prerequisites.
+    :param workers: A list of strings identifying the workers
+     (e.g., [db_sync', 'cache_warmup'])
+    """
+    def decorator(f):
+        # Attach the list to the function object itself
+        f._worker_prerequisites = workers
+        return f
+    return decorator
 
 def register_route(build_fn):
     """
     Decorator for a *function* that returns a Blueprint.
     The returned blueprint is added to BLUEPRINTS.
     """
-    bp = build_fn() # execute the builder
+    # 1. Execute the builder to get the blueprint
+    bp = build_fn()
+
+    # 2. Check if the builder has prerequisites attached
+    @bp.before_request
+    def check_prerequisites():
+        required_workers = getattr(build_fn, '_worker_prerequisites', None)
+        if required_workers:
+            for required_worker in required_workers:
+                for registered_worker in WORKERS:
+                    if registered_worker.worker_name == required_worker:
+                        return_code = _detached_execution(registered_worker)
+                        if return_code is not 0:
+                            return jsonify({
+                                'status': 'error',
+                                'message': f'Worker failed to execute.',
+                                'return_code': return_code
+                            }), 503
+                        return
+                return jsonify({
+                        'status': 'error',
+                        'message': f'Worker not found.',
+                        'missing_workers': required_workers,
+                        'existing_workers': [_.worker_name for _ in WORKERS]
+                    }), 503
+
     BLUEPRINTS.append(bp)
     return build_fn
 

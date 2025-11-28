@@ -105,6 +105,8 @@ def _detached_execution(cls):
                                                   exec_return_code,
                                                   exec_duration_s])
 
+            return exec_return_code
+
     except Exception as e:
         _log.error(f'Unknown error while running {worker_name}: {e}')
 

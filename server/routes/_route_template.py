@@ -3,11 +3,13 @@ from flask import (Blueprint,
                    request,
                    jsonify)
 from ._loader import register_route
+from ._loader import register_worker_prerequisite
 
 ROUTE_NAME = 'my_route_name'
 ROUTE_PREFIX = '/my_route_url_prefix'
 
 # @register_route
+# @register_worker_prerequisite(['_worker_template'])
 def build():
     bp = Blueprint(ROUTE_NAME, __name__, url_prefix=ROUTE_PREFIX)
 
