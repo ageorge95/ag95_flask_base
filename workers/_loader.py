@@ -43,6 +43,12 @@ def load_all_workers():
                 import_recursive(subpackage_path, full_name)
             else:
                 # Import module
-                importlib.import_module(full_name)
+                try:
+                    importlib.import_module(full_name)
+                    if not name.startswith("_"):
+                        print(f"✓ Loaded worker from: {full_name}")
+                except Exception as e:
+                    if not name.startswith("_"):
+                        print(f"✗ Failed to load {full_name}: {e}")
 
     import_recursive(package_path, package_name)
