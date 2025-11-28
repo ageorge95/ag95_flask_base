@@ -32,8 +32,10 @@ def load_all_blueprints():
                 # Import module
                 try:
                     importlib.import_module(full_name)
-                    print(f"✓ Loaded blueprints from: {full_name}")
+                    if not name.startswith("_"):
+                        print(f"✓ Loaded blueprints from: {full_name}")
                 except Exception as e:
-                    print(f"✗ Failed to import {full_name}: {e}")
+                    if not name.startswith("_"):
+                        print(f"✗ Failed to import {full_name}: {e}")
 
     import_recursive(package_path, package_name)
