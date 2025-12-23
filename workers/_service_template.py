@@ -28,8 +28,8 @@ class MyServiceBackend(metaclass=Singleton_without_cache):
     def do_something():
         return 'i did a thing'
 
-@register_worker(worker_cycle_time_s=5,
-                 worker_name=os.path.basename(__file__).replace('.py', ''))
+# @register_worker(worker_cycle_time_s=5,
+#                  worker_name=os.path.basename(__file__).replace('.py', ''))
 class Worker(WorkerBootstrap):
     def __init__(self):
         super().__init__()
