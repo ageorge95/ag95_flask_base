@@ -1,4 +1,6 @@
 import os
+import threading
+import time
 from ._loader import register_worker
 from ._bootstrap import WorkerBootstrap
 from logging import getLogger
@@ -10,6 +12,13 @@ from flask import Flask
 
 SERVICE_PORT = 8911
 LOCALHOST_ONLY = True
+
+def exit_file_watcher(log):
+    while True:
+        if os.path.exists("exit"):
+            log.info(f"Exit file '{"exit"}' detected. Sending os._exit ...")
+            os._exit(0)
+        time.sleep(1)
 
 class MyServiceBackend(metaclass=Singleton_without_cache):
     def __init__(self):
@@ -46,15 +55,24 @@ class Worker(WorkerBootstrap):
             service = Flask(__name__)
 
             @service.route('/get_some_backend_data')
-            def get_inverter_status():
-
+            def get_some_backend_data():
                 return MyServiceBackend().do_something()
+
+            # start exit file watcher
+            watcher = threading.Thread(
+                target=exit_file_watcher,
+                args=(self._log,),
+                daemon=True
+            )
+            watcher.start()
 
             serve(service,
                   host='127.0.0.1' if LOCALHOST_ONLY else '0.0.0.0',
                   port=8911,
                   threads=5)
 
+            # the only way to gracefully close the service is with a SIGTERM, so the code should never reach this code
+            # but, it is still here for consistency
             self._log.info('Service closed successfully')
             return 0
         except:
