@@ -68,7 +68,7 @@ class Worker(WorkerBootstrap):
 
             serve(service,
                   host='127.0.0.1' if LOCALHOST_ONLY else '0.0.0.0',
-                  port=8911,
+                  port=SERVICE_PORT,
                   threads=5)
 
             # the only way to gracefully close the service is with a SIGTERM, so the code should never reach this code
