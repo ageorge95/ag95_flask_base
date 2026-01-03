@@ -1,4 +1,5 @@
 import os
+import requests
 from ._loader import register_worker
 from ._bootstrap import WorkerBootstrap
 from logging import getLogger
@@ -28,14 +29,15 @@ class Worker(WorkerBootstrap):
         '''
         try:
 
-            with SqLiteDbWrapper(database_path=os.path.join('db', 'database', 'database.sqlite')) as DB:
+            with requests.Session() as session:
                 for table_def in database_structure:
                     table_name = table_def['table_name']
                     max_history_s = table_def['max_history_s']
 
                     if max_history_s > 0:
-                        DB.clear_old_records(table_name=table_name,
-                                             since_time_in_past_s=max_history_s)
+                        session.post(f'http://localhost:{self.config.get(reload=True)['db_ops_port']}/clear_old_records',
+                                     json={'table_name': table_name,
+                                           'since_time_in_past_s': max_history_s}).raise_for_status()
             self._log.info('worker completed successfully')
             return 0
         except:

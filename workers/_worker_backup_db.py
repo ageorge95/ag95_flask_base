@@ -1,9 +1,9 @@
 import os
+import requests
 from ._loader import register_worker
 from ._bootstrap import WorkerBootstrap
 from logging import getLogger
-from ag95 import (configure_logger,
-                  SqLiteDbbackup)
+from ag95 import configure_logger
 from traceback import format_exc
 
 @register_worker(worker_cycle_time_s=6*60*60,
@@ -30,8 +30,8 @@ class Worker(WorkerBootstrap):
             computer_name = os.environ['COMPUTERNAME'].lower()
             output_folderpath = self.config.get()['db_backup_path'].replace('$$COMPUTER_NAME$$', computer_name)
 
-            SqLiteDbbackup(input_filepath=os.path.join('db', 'database', 'database.sqlite'),
-                           output_filepath=os.path.join(output_folderpath, 'database.sqlite')).backup_db()
+            requests.post(f'http://localhost:{self.config.get(reload=True)['db_ops_port']}/backup_db',
+                          json={'output_filepath': os.path.join(output_folderpath, 'database.sqlite')}).raise_for_status()
             self._log.info('worker completed successfully')
             return 0
         except:
