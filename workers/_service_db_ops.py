@@ -31,7 +31,8 @@ class Worker(WorkerBootstrap):
             initialize_SqliteDbWrapper_service(LOCALHOST_ONLY=True,
                                                SERVICE_PORT=self.config.get(reload=True)['db_ops_port'],
                                                database_path=os.path.join('db', 'database', 'database.sqlite'),
-                                               timeout=5*60)
+                                               timeout=5*60,
+                                               shutdown_watcher_mode="wait_for_exit_file")
 
             # the only way to gracefully close the service is with a SIGTERM, so the code should never reach this code
             # but, it is still here for consistency
