@@ -13,10 +13,10 @@ from flask import Flask
 SERVICE_PORT = 8911
 LOCALHOST_ONLY = True
 
-def exit_file_watcher(log):
+def exit_file_watcher(log, exit_flag_func):
     while True:
-        if os.path.exists("exit"):
-            log.info(f"Exit file '{"exit"}' detected. Sending os._exit ...")
+        if exit_flag_func():
+            log.info(f"Exit command detected. Sending os._exit ...")
             os._exit(0)
         time.sleep(1)
 
@@ -28,7 +28,7 @@ class MyServiceBackend(metaclass=Singleton_without_cache):
     def do_something():
         return 'i did a thing'
 
-# @register_worker(worker_cycle_time_s=5,
+# @register_worker(worker_cycle_time_s=0,
 #                  worker_name=os.path.basename(__file__).replace('.py', ''))
 class Worker(WorkerBootstrap):
     def __init__(self):
@@ -61,7 +61,7 @@ class Worker(WorkerBootstrap):
             # start exit file watcher
             watcher = threading.Thread(
                 target=exit_file_watcher,
-                args=(self._log,),
+                args=(self._log,self.should_exit),
                 daemon=True
             )
             watcher.start()
