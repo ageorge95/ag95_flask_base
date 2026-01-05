@@ -4,6 +4,7 @@ import os
 import time
 import socket
 import logging
+import glob
 from traceback import format_exc
 from server.app import Server
 from workers._relay import start_workers_relay
@@ -69,9 +70,11 @@ def start_workers():
 
 def start_stdin_watcher():
 
-    stdin_watcher(trigger_command='exit',
-                  init_action=(lambda: os.remove('exit') if os.path.isfile('exit') else None),
-                  trigger_action=(lambda: open('exit', 'w')))
+    stdin_watcher(
+        trigger_command='exit',
+        init_action=(lambda: [os.remove(f) for f in glob.glob('exit*') if os.path.isfile(f)]),
+        trigger_action=(lambda: open('exit', 'w'))
+    )
 
 def initialize_db():
     SqLiteDbMigration(database_path=os.path.join('db', 'database', 'database.sqlite'),
