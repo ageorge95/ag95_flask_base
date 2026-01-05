@@ -1,4 +1,5 @@
 import os
+import time
 from ._loader import register_worker
 from ._bootstrap import WorkerBootstrap
 from logging import getLogger
@@ -25,7 +26,13 @@ class Worker(WorkerBootstrap):
         0 is a good response, meaning that the worker accomplished its job
         '''
         try:
-            self._log.info('I did something')
+            # simulate a loop with an example of a graceful exit
+            for _ in range(5):
+                exit_now = self.should_exit()
+                self._log.info(f'I did something {_}, should I exit now ? {exit_now}')
+                if exit_now:
+                    break
+                time.sleep(1)
 
             self._log.info('worker completed successfully')
             return 0
