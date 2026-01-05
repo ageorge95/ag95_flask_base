@@ -45,6 +45,9 @@ class Config:
                 return False
 
 class WorkerBootstrap:
+    worker_cycle_time_s : int
+    worker_name: str
+
     def __init__(self,
                  config_filepath: str = ''):
         # mark as not working by default
@@ -52,10 +55,12 @@ class WorkerBootstrap:
 
         self.config = Config(config_filepath=config_filepath)
 
-    def _should_exit(self):
-        possible_exit_filepaths = ['exit',
-                                   os.path.join('.', 'exit')]
-        return any([os.path.isfile(_) for _ in possible_exit_filepaths])
+    def exit(self):
+        with open(f'exit_{self.worker_name}', 'w') as _:
+            pass
+
+    def should_exit(self):
+        return os.path.isfile(f'exit_{self.worker_name}')
 
     def work(self) -> int:
         pass
