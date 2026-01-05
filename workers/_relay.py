@@ -58,8 +58,7 @@ worker_manager = WorkerManager()
 configure_logger(log_name=os.path.join('logs', 'main.log'))
 _log = getLogger('main')
 
-def _detached_execution(cls,
-                        execute_now_override: bool = False):
+def _detached_execution(cls):
     """
     Function executed by a new thread to start a worker subprocess.
     """
@@ -75,7 +74,7 @@ def _detached_execution(cls,
     try:
 
         # get the last execution timestamp
-        if execute_now_override:
+        if worker_cycle_time_s == 0:
             worker__last_exec_timestamp = 0
         else:
             query_result = requests.get(f'http://localhost:{config['db_ops_port']}/get_records',
@@ -109,7 +108,7 @@ def _detached_execution(cls,
                       f' {'✅' if exec_return_code == 0 else '❌'} exec_return_code: {exec_return_code}')
 
             requests.post(f'http://localhost:{config['db_ops_port']}/insert_record',
-                          json={'table_name': 'my_db_table_name',
+                          json={'table_name': 'workers_status',
                                 'column_names': ['worker_name',
                                                  'exec_timestamp',
                                                  'exec_return_code',
@@ -135,6 +134,14 @@ def start_workers_relay():
     time.sleep(2)
     load_all_workers()
 
+    # take care of the critical services first (including the db ops service)
+    for cls in [_ for _ in WORKERS if _.worker_cycle_time_s == 0]:
+        if not worker_manager.is_busy(cls.worker_name):
+            t = threading.Thread(target=_detached_execution, args=(cls,))
+            t.start()
+    time.sleep(2)
+
+    # and now execute the continuous loop of workers
     while True:
         for cls in WORKERS:
             if not worker_manager.is_busy(cls.worker_name):
