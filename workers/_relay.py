@@ -107,16 +107,19 @@ def _detached_execution(cls):
             _log.info(f'Worker process {worker_name} completed in {exec_duration_s}s with'
                       f' {'✅' if exec_return_code == 0 else '❌'} exec_return_code: {exec_return_code}')
 
-            requests.post(f'http://localhost:{config['db_ops_port']}/insert_record',
-                          json={'table_name': 'workers_status',
-                                'column_names': ['worker_name',
-                                                 'exec_timestamp',
-                                                 'exec_return_code',
-                                                 'exec_duration_s'],
-                                'column_values': [worker_name,
-                                                  timestamp_end,
-                                                  exec_return_code,
-                                                  exec_duration_s]})
+            # do not attempt to insert a db record for a service that was scheduled to exit
+            if not (worker_cycle_time_s == 0 and cls().should_exit()):
+
+                requests.post(f'http://localhost:{config['db_ops_port']}/insert_record',
+                              json={'table_name': 'workers_status',
+                                    'column_names': ['worker_name',
+                                                     'exec_timestamp',
+                                                     'exec_return_code',
+                                                     'exec_duration_s'],
+                                    'column_values': [worker_name,
+                                                      timestamp_end,
+                                                      exec_return_code,
+                                                      exec_duration_s]})
 
             return exec_return_code
 
@@ -148,7 +151,26 @@ def start_workers_relay():
                 t = threading.Thread(target=_detached_execution,args=(cls,))
                 t.start()
 
+        # time to close all open workers and exit the loop
         if os.path.isfile('exit'):
+            # first close all non-critical workers
+            for cls in [_ for _ in WORKERS if _.worker_cycle_time_s != 0]:
+                cls().exit()
+
+            # wait for them to close properly
+            while True:
+                running_non_critical_workers = [_ for _ in WORKERS if (_.worker_cycle_time_s != 0
+                                                                       and worker_manager.is_busy(_.worker_name))]
+
+                if not running_non_critical_workers:
+                    break
+                else:
+                    time.sleep(0.1)
+
+            # and finally close all services (including the db ops service)
+            for cls in [_ for _ in WORKERS if _.worker_cycle_time_s == 0]:
+                cls().exit()
+
             break
 
         time.sleep(0.5)

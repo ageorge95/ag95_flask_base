@@ -2,7 +2,7 @@
 *.pyc
 /venv
 activate.bat
-/exit
+/exit*
 /logs
 /db_backup*
 /server/templates/*.html
