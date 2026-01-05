@@ -3,8 +3,7 @@ import requests
 from ._loader import register_worker
 from ._bootstrap import WorkerBootstrap
 from logging import getLogger
-from ag95 import (configure_logger,
-                  SqLiteDbWrapper)
+from ag95 import configure_logger
 from traceback import format_exc
 from db.structure import database_structure
 

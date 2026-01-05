@@ -3,12 +3,13 @@ import time
 import subprocess
 import threading
 import sys
+import requests
+import json
 from . import (load_all_workers,
                WORKERS,
                DO_NOT_RUN_ANY_WORKER_BOOL)
 from datetime import datetime
-from ag95 import (SqLiteDbWrapper,
-                  configure_logger)
+from ag95 import configure_logger
 from logging import getLogger
 
 # A thread-safe class to manage the running processes' dictionary.
@@ -68,17 +69,20 @@ def _detached_execution(cls,
 
     worker_manager.add_worker(worker_name)
 
+    with open('configuration.json', 'r') as f:
+        config = json.load(f)
+
     try:
 
         # get the last execution timestamp
         if execute_now_override:
             worker__last_exec_timestamp = 0
         else:
-            with SqLiteDbWrapper(database_path=os.path.join('db', 'database', 'database.sqlite')) as DB:
-                query_result = DB.return_records(table_name='workers_status',
-                                                 where_statement=f"worker_name == '{worker_name}'",
-                                                 limit=1,
-                                                 order='DESC')
+            query_result = requests.get(f'http://localhost:{config['db_ops_port']}/get_records',
+                                       json={'table_name': 'workers_status',
+                                             'where_statement': f"worker_name == '{worker_name}'",
+                                             'limit': 1,
+                                             'order': 'DESC'}).json()
             if query_result:
                 worker__last_exec_timestamp = query_result[0][1]
             else:
@@ -104,16 +108,16 @@ def _detached_execution(cls,
             _log.info(f'Worker process {worker_name} completed in {exec_duration_s}s with'
                       f' {'✅' if exec_return_code == 0 else '❌'} exec_return_code: {exec_return_code}')
 
-            with SqLiteDbWrapper(database_path=os.path.join('db', 'database', 'database.sqlite')) as DB:
-                DB.append_in_table(table_name='workers_status',
-                                   column_names=['worker_name',
+            requests.post(f'http://localhost:{config['db_ops_port']}/insert_record',
+                          json={'table_name': 'my_db_table_name',
+                                'column_names': ['worker_name',
                                                  'exec_timestamp',
                                                  'exec_return_code',
                                                  'exec_duration_s'],
-                                   column_values=[worker_name,
+                                'column_values': [worker_name,
                                                   timestamp_end,
                                                   exec_return_code,
-                                                  exec_duration_s])
+                                                  exec_duration_s]})
 
             return exec_return_code
 
