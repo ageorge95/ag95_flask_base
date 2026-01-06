@@ -13,11 +13,12 @@ from flask import Flask
 SERVICE_PORT = 8911
 LOCALHOST_ONLY = True
 
-def exit_file_watcher(log, exit_flag_func):
+def exit_file_watcher(log, exit_flag_func, action):
     while True:
         if exit_flag_func():
-            log.info(f"Exit command detected. Sending os._exit ...")
-            os._exit(0)
+            log.info(f"Exit command detected.")
+            action()
+            break
         time.sleep(1)
 
 class MyServiceBackend(metaclass=Singleton_without_cache):
@@ -50,6 +51,13 @@ class Worker(WorkerBootstrap):
         try:
             self._log.info('Starting service ...')
 
+            # Create an event to signal the main service thread to exit
+            stop_event = threading.Event()
+
+            def handle_shutdown():
+                # Here you could have a call to MyServiceBackend().shutdown() if needed
+                stop_event.set()  # Signals the loop below to stop
+
             MyServiceBackend()
 
             service = Flask(__name__)
@@ -61,18 +69,28 @@ class Worker(WorkerBootstrap):
             # start exit file watcher
             watcher = threading.Thread(
                 target=exit_file_watcher,
-                args=(self._log,self.should_exit),
+                args=(self._log, self.should_exit, handle_shutdown),
                 daemon=True
             )
             watcher.start()
 
-            serve(service,
-                  host='127.0.0.1' if LOCALHOST_ONLY else '0.0.0.0',
-                  port=SERVICE_PORT,
-                  threads=5)
+            # Start Waitress in a DAEMON thread so it doesn't block the exit
+            server_thread = threading.Thread(
+                target=serve,
+                kwargs={
+                    'app': service,
+                    'host': '127.0.0.1' if LOCALHOST_ONLY else '0.0.0.0',
+                    'port': SERVICE_PORT,
+                    'threads': 5
+                },
+                daemon=True
+            )
+            server_thread.start()
 
-            # the only way to gracefully close the service is with a SIGTERM, so the code should never reach this code
-            # but, it is still here for consistency
+            # Keep this thread alive until handle_shutdown is called
+            while not stop_event.is_set():
+                stop_event.wait(timeout=1.0)
+
             self._log.info('Service closed successfully')
             return 0
         except:
