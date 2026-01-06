@@ -30,7 +30,7 @@ class Worker(WorkerBootstrap):
             computer_name = os.environ['COMPUTERNAME'].lower()
             output_folderpath = self.config.get()['db_backup_path'].replace('$$COMPUTER_NAME$$', computer_name)
 
-            requests.post(f'http://localhost:{self.config.get(reload=True)['db_ops_port']}/backup_db',
+            requests.post(f'http://127.0.0.1:{self.config.get(reload=True)['db_ops_port']}/backup_db',
                           json={'output_filepath': os.path.join(output_folderpath, 'database.sqlite')}).raise_for_status()
             self._log.info('worker completed successfully')
             return 0

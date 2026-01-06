@@ -30,7 +30,7 @@ def build():
         # and query the db for relevant data
         valid_workers = ','.join(f'"{_.worker_name}"' for _ in WORKERS)
 
-        db_data = requests.get(f'http://localhost:{config['db_ops_port']}/get_records',
+        db_data = requests.get(f'http://127.0.0.1:{config['db_ops_port']}/get_records',
                                json={'table_name': 'workers_status',
                                      'where_statement': f'worker_name IN ({valid_workers})'}).json()
 

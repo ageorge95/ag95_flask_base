@@ -34,7 +34,7 @@ class Worker(WorkerBootstrap):
                     max_history_s = table_def['max_history_s']
 
                     if max_history_s > 0:
-                        session.post(f'http://localhost:{self.config.get(reload=True)['db_ops_port']}/clear_old_records',
+                        session.post(f'http://127.0.0.1:{self.config.get(reload=True)['db_ops_port']}/clear_old_records',
                                      json={'table_name': table_name,
                                            'since_time_in_past_s': max_history_s}).raise_for_status()
             self._log.info('worker completed successfully')

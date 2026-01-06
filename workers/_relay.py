@@ -77,7 +77,7 @@ def _detached_execution(cls):
         if worker_cycle_time_s == 0:
             worker__last_exec_timestamp = 0
         else:
-            query_result = requests.get(f'http://localhost:{config['db_ops_port']}/get_records',
+            query_result = requests.get(f'http://127.0.0.1:{config['db_ops_port']}/get_records',
                                        json={'table_name': 'workers_status',
                                              'where_statement': f"worker_name == '{worker_name}'",
                                              'limit': 1,
@@ -110,7 +110,7 @@ def _detached_execution(cls):
             # do not attempt to insert a db record for a service that was scheduled to exit
             if not (worker_cycle_time_s == 0 and cls().should_exit()):
 
-                requests.post(f'http://localhost:{config['db_ops_port']}/insert_record',
+                requests.post(f'http://127.0.0.1:{config['db_ops_port']}/insert_record',
                               json={'table_name': 'workers_status',
                                     'column_names': ['worker_name',
                                                      'exec_timestamp',
