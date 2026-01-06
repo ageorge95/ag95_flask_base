@@ -8,11 +8,12 @@ from ag95 import (configure_logger,
                   initialize_SqliteDbWrapper_service)
 from traceback import format_exc
 
-def exit_file_watcher(log, exit_flag_func):
+def exit_file_watcher(log, exit_flag_func, action):
     while True:
         if exit_flag_func():
-            log.info(f"Exit command detected. Sending os._exit ...")
-            os._exit(0)
+            log.info(f"Exit command detected.")
+            action()
+            break
         time.sleep(1)
 
 @register_worker(worker_cycle_time_s=0,
@@ -37,22 +38,39 @@ class Worker(WorkerBootstrap):
         try:
             self._log.info('Starting service ...')
 
+            # Create an event to signal the main service thread to exit
+            stop_event = threading.Event()
+
+            def handle_shutdown():
+                # Here you could have a call to MyServiceBackend().shutdown() if needed
+                stop_event.set()  # Signals the loop below to stop
+
             # start exit file watcher
             watcher = threading.Thread(
                 target=exit_file_watcher,
-                args=(self._log, self.should_exit),
+                args=(self._log, self.should_exit, handle_shutdown),
                 daemon=True
             )
             watcher.start()
 
-            initialize_SqliteDbWrapper_service(LOCALHOST_ONLY=True,
-                                               SERVICE_PORT=self.config.get(reload=True)['db_ops_port'],
-                                               database_path=os.path.join('db', 'database', 'database.sqlite'),
-                                               timeout=5*60,
-                                               shutdown_watcher_mode="none")
+            # Start Waitress in a DAEMON thread so it doesn't block the exit
+            server_thread = threading.Thread(
+                target=initialize_SqliteDbWrapper_service,
+                kwargs={
+                    'LOCALHOST_ONLY': True,
+                    'SERVICE_PORT': self.config.get(reload=True)['db_ops_port'],
+                    'database_path': os.path.join('db', 'database', 'database.sqlite'),
+                    'timeout': 5*60,
+                    'shutdown_watcher_mode': "none"
+                },
+                daemon=True
+            )
+            server_thread.start()
 
-            # the only way to gracefully close the service is with a SIGTERM, so the code should never reach this code
-            # but, it is still here for consistency
+            # Keep this thread alive until handle_shutdown is called
+            while not stop_event.is_set():
+                stop_event.wait(timeout=1.0)
+
             self._log.info('Service closed successfully')
             return 0
         except:
