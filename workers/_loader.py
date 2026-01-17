@@ -11,6 +11,7 @@ def register_worker(_cls=None,
     def decorator(cls):
 
         # opt-out support
+        # may not be needed in some cases
         if getattr(cls, "_disable_worker_registration", False):
             return cls
 
@@ -50,9 +51,9 @@ def load_all_workers():
                 try:
                     importlib.import_module(full_name)
                     if not name.startswith("_"):
-                        print(f"✓ Loaded worker from: {full_name}")
+                        print(f"✓ Scanned file for workers: {full_name}")
                 except Exception as e:
                     if not name.startswith("_"):
-                        print(f"✗ Failed to load {full_name}: {e}")
+                        print(f"✗ Failed to scan file for workers {full_name}: {e}")
 
     import_recursive(package_path, package_name)
