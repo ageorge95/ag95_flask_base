@@ -10,6 +10,10 @@ def register_worker(_cls=None,
                     worker_name):
     def decorator(cls):
 
+        # opt-out support
+        if getattr(cls, "_disable_worker_registration", False):
+            return cls
+
         # attach metadata
         cls.worker_cycle_time_s = worker_cycle_time_s
         cls.worker_name = worker_name
