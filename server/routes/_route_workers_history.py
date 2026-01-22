@@ -1,6 +1,5 @@
 import os
 import json
-import requests
 from datetime import datetime
 from flask import (Blueprint,
                    render_template)
@@ -8,7 +7,8 @@ from ._loader import register_route
 from workers import (load_all_workers,
                      WORKERS)
 from ag95 import (SinglePlot,
-                  ScatterPlotDef)
+                  ScatterPlotDef,
+                  SqLiteDbWrapperServiceClient)
 
 ROUTE_NAME = 'workers_history'
 ROUTE_PREFIX = '/workers_history'
@@ -30,9 +30,9 @@ def build():
         # and query the db for relevant data
         valid_workers = ','.join(f'"{_.worker_name}"' for _ in WORKERS)
 
-        db_data = requests.get(f'http://127.0.0.1:{config['db_ops_port']}/get_records',
-                               json={'table_name': 'workers_status',
-                                     'where_statement': f'worker_name IN ({valid_workers})'}).json()
+        with SqLiteDbWrapperServiceClient(port=config['db_ops_port']) as client:
+            db_data = client.get_records(table_name='workers_status',
+                                         where_statement=f'worker_name IN ({valid_workers})')
 
         # iterate through db_data and sort data for the plots
         plots_data_per_worker = dict((_.worker_name, []) for _ in WORKERS)

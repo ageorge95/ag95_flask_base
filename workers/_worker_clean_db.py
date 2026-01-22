@@ -1,9 +1,9 @@
 import os
-import requests
 from ._loader import register_worker
 from ._bootstrap import WorkerBootstrap
 from logging import getLogger
-from ag95 import configure_logger
+from ag95 import (configure_logger,
+                  SqLiteDbWrapperServiceClient)
 from traceback import format_exc
 from db.structure import database_structure
 
@@ -28,15 +28,14 @@ class Worker(WorkerBootstrap):
         '''
         try:
 
-            with requests.Session() as session:
+            with SqLiteDbWrapperServiceClient(port=self.config.get(reload=True)['db_ops_port']) as client:
                 for table_def in database_structure:
                     table_name = table_def['table_name']
                     max_history_s = table_def['max_history_s']
 
                     if max_history_s > 0:
-                        session.post(f'http://127.0.0.1:{self.config.get(reload=True)['db_ops_port']}/clear_old_records',
-                                     json={'table_name': table_name,
-                                           'since_time_in_past_s': max_history_s}).raise_for_status()
+                        client.clear_old_records(table_name=table_name,
+                                                 since_time_in_past_s=max_history_s)
             self._log.info('worker completed successfully')
             return 0
         except:

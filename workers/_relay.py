@@ -3,13 +3,13 @@ import time
 import subprocess
 import threading
 import sys
-import requests
 import json
 from . import (load_all_workers,
                WORKERS,
                DO_NOT_RUN_ANY_WORKER_BOOL)
 from datetime import datetime
-from ag95 import configure_logger
+from ag95 import (configure_logger,
+                  SqLiteDbWrapperServiceClient)
 from logging import getLogger
 
 # A thread-safe class to manage the running processes' dictionary.
@@ -71,63 +71,63 @@ def _detached_execution(cls):
     with open('configuration.json', 'r') as f:
         config = json.load(f)
 
-    try:
+    with SqLiteDbWrapperServiceClient(port=config['db_ops_port']) as client:
 
-        # get the last execution timestamp
-        if worker_cycle_time_s == 0:
-            worker__last_exec_timestamp = 0
-        else:
-            query_result = requests.get(f'http://127.0.0.1:{config['db_ops_port']}/get_records',
-                                       json={'table_name': 'workers_status',
-                                             'where_statement': f"worker_name == '{worker_name}'",
-                                             'limit': 1,
-                                             'order': 'DESC'}).json()
-            if query_result:
-                worker__last_exec_timestamp = query_result[0][1]
-            else:
+        try:
+
+            # get the last execution timestamp
+            if worker_cycle_time_s == 0:
                 worker__last_exec_timestamp = 0
+            else:
+                query_result = client.get_records(table_name='workers_status',
+                                                  where_statement=f"worker_name == '{worker_name}'",
+                                                  limit=1,
+                                                  order='DESC')
+                if query_result:
+                    worker__last_exec_timestamp = query_result[0][1]
+                else:
+                    worker__last_exec_timestamp = 0
 
-        # is it time to run the worker ?
-        timestamp_start = datetime.now().timestamp()
-        if (timestamp_start - worker__last_exec_timestamp) > worker_cycle_time_s:
+            # is it time to run the worker ?
+            timestamp_start = datetime.now().timestamp()
+            if (timestamp_start - worker__last_exec_timestamp) > worker_cycle_time_s:
 
-            _log.info(f'Starting worker process for: {worker_name}')
+                _log.info(f'Starting worker process for: {worker_name}')
 
-            p = subprocess.Popen([sys.executable,
-                                  '-m',
-                                  worker_module],
-                                 stdin=subprocess.DEVNULL,
-                                 close_fds=True
-                                 )
-            p.wait()
+                p = subprocess.Popen([sys.executable,
+                                      '-m',
+                                      worker_module],
+                                     stdin=subprocess.DEVNULL,
+                                     close_fds=True
+                                     )
+                p.wait()
 
-            exec_return_code = p.returncode
-            timestamp_end = datetime.now().timestamp()
-            exec_duration_s = round(timestamp_end - timestamp_start,2)
-            _log.info(f'Worker process {worker_name} completed in {exec_duration_s}s with'
-                      f' {'✅' if exec_return_code == 0 else '❌'} exec_return_code: {exec_return_code}')
+                exec_return_code = p.returncode
+                timestamp_end = datetime.now().timestamp()
+                exec_duration_s = round(timestamp_end - timestamp_start,2)
+                _log.info(f'Worker process {worker_name} completed in {exec_duration_s}s with'
+                          f' {'✅' if exec_return_code == 0 else '❌'} exec_return_code: {exec_return_code}')
 
-            # do not attempt to insert a db record for a service that was scheduled to exit
-            if not (worker_cycle_time_s == 0 and cls().should_exit()):
+                # do not attempt to insert a db record for a service that was scheduled to exit
+                if not (worker_cycle_time_s == 0 and cls().should_exit()):
 
-                requests.post(f'http://127.0.0.1:{config['db_ops_port']}/insert_record',
-                              json={'table_name': 'workers_status',
-                                    'column_names': ['worker_name',
-                                                     'exec_timestamp',
-                                                     'exec_return_code',
-                                                     'exec_duration_s'],
-                                    'column_values': [worker_name,
-                                                      timestamp_end,
-                                                      exec_return_code,
-                                                      exec_duration_s]})
+                    client.insert_record(table_name='workers_status',
+                                         column_names=['worker_name',
+                                                       'exec_timestamp',
+                                                       'exec_return_code',
+                                                       'exec_duration_s'],
+                                         column_values=[worker_name,
+                                                        timestamp_end,
+                                                        exec_return_code,
+                                                        exec_duration_s])
 
-            return exec_return_code
+                return exec_return_code
 
-    except Exception as e:
-        _log.error(f'Unknown error while running {worker_name}: {e}')
+        except Exception as e:
+            _log.error(f'Unknown error while running {worker_name}: {e}')
 
-    finally:
-        worker_manager.remove_worker(worker_name=worker_name)
+        finally:
+            worker_manager.remove_worker(worker_name=worker_name)
 
 def start_workers_relay():
     if DO_NOT_RUN_ANY_WORKER_BOOL:
