@@ -100,9 +100,19 @@ def _detached_execution(cls):
                                      stdin=subprocess.DEVNULL,
                                      close_fds=True
                                      )
-                p.wait()
 
-                exec_return_code = p.returncode
+                # --- new: use the worker’s timeout or a global default (e.g., 30 * 60 seconds = 30 min) ---
+                worker_timeout = getattr(cls, 'worker_timeout_s', None) or 30 * 60
+
+                try:
+                    exec_return_code = p.wait(timeout=worker_timeout)
+                    # Success – process finished within timeout
+                except subprocess.TimeoutExpired:
+                    _log.error(f'Worker {worker_name} timed out after {worker_timeout}s. Killing it.')
+                    p.kill()
+                    # Wait for the process to actually terminate
+                    exec_return_code = p.wait()  # this should return immediately after kill
+
                 timestamp_end = datetime.now().timestamp()
                 exec_duration_s = round(timestamp_end - timestamp_start,2)
                 _log.info(f'Worker process {worker_name} completed in {exec_duration_s}s with'

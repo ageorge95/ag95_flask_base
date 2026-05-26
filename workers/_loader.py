@@ -7,7 +7,8 @@ WORKERS = []
 def register_worker(_cls=None,
                     *,
                     worker_cycle_time_s,
-                    worker_name):
+                    worker_name,
+                    worker_timeout_s=None):
     def decorator(cls):
 
         # opt-out support
@@ -19,6 +20,7 @@ def register_worker(_cls=None,
         cls.worker_cycle_time_s = worker_cycle_time_s
         cls.worker_name = worker_name
         cls.worker_module = cls.__module__
+        cls.worker_timeout_s = worker_timeout_s
 
         # register
         WORKERS.append(cls)

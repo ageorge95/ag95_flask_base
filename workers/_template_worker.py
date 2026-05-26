@@ -7,7 +7,8 @@ from ag95 import configure_logger
 from traceback import format_exc
 
 # @register_worker(worker_cycle_time_s=5,
-#                  worker_name=os.path.basename(__file__).replace('.py', ''))
+#                  worker_name=os.path.basename(__file__).replace('.py', ''),
+#                  worker_timeout_s=30 * 60) # 30 minutes timeout
 class Worker(WorkerBootstrap):
     def __init__(self):
         super().__init__()
