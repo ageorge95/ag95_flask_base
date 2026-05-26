@@ -37,4 +37,5 @@ class Server:
             return Markup(html)
 
     def serve(self, host="0.0.0.0", port=5000):
-        serve(self.flask, host=host, port=port)
+        serve(self.flask, host=host, port=port,
+              threads=8)
