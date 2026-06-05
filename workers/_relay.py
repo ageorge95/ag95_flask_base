@@ -101,8 +101,9 @@ def _detached_execution(cls):
                                      close_fds=True
                                      )
 
-                # --- new: use the worker’s timeout or a global default (e.g., 30 * 60 seconds = 30 min) ---
-                worker_timeout = getattr(cls, 'worker_timeout_s', None) or 30 * 60
+                # --- use the worker’s timeout or a global default (e.g., 30 * 60 seconds = 30 min) ---
+                # or use no timeout is a service is detected
+                worker_timeout = None if worker_cycle_time_s == 0 else (getattr(cls, 'worker_timeout_s', None) or 30 * 60)
 
                 try:
                     exec_return_code = p.wait(timeout=worker_timeout)
