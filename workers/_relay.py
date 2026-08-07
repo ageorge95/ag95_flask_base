@@ -58,6 +58,19 @@ worker_manager = WorkerManager()
 configure_logger(log_name=os.path.join('logs', 'main.log'))
 _log = getLogger('main')
 
+# Persistent HTTP session reused across all worker executions to avoid
+# ephemeral port exhaustion (WinError 10048) from rapid session churn.
+_db_client = None
+_db_client_lock = threading.Lock()
+
+def _get_db_client(port: int) -> SqLiteDbWrapperServiceClient:
+    global _db_client
+    if _db_client is None:
+        with _db_client_lock:
+            if _db_client is None:
+                _db_client = SqLiteDbWrapperServiceClient(port=port)
+    return _db_client
+
 def _detached_execution(cls):
     """
     Function executed by a new thread to start a worker subprocess.
@@ -71,74 +84,74 @@ def _detached_execution(cls):
     with open('configuration.json', 'r') as f:
         config = json.load(f)
 
-    with SqLiteDbWrapperServiceClient(port=config['db_ops_port']) as client:
+    client = _get_db_client(config['db_ops_port'])
 
-        try:
+    try:
 
-            # get the last execution timestamp
-            if worker_cycle_time_s == 0:
-                worker__last_exec_timestamp = 0
+        # get the last execution timestamp
+        if worker_cycle_time_s == 0:
+            worker__last_exec_timestamp = 0
+        else:
+            query_result = client.get_records(table_name='workers_status',
+                                              where_statement=f"worker_name == '{worker_name}'",
+                                              limit=1,
+                                              order='DESC')
+            if query_result:
+                worker__last_exec_timestamp = query_result[0][1]
             else:
-                query_result = client.get_records(table_name='workers_status',
-                                                  where_statement=f"worker_name == '{worker_name}'",
-                                                  limit=1,
-                                                  order='DESC')
-                if query_result:
-                    worker__last_exec_timestamp = query_result[0][1]
-                else:
-                    worker__last_exec_timestamp = 0
+                worker__last_exec_timestamp = 0
 
-            # is it time to run the worker ?
-            timestamp_start = datetime.now().timestamp()
-            if (timestamp_start - worker__last_exec_timestamp) > worker_cycle_time_s:
+        # is it time to run the worker ?
+        timestamp_start = datetime.now().timestamp()
+        if (timestamp_start - worker__last_exec_timestamp) > worker_cycle_time_s:
 
-                _log.info(f'Starting worker process for: {worker_name}')
+            _log.info(f'Starting worker process for: {worker_name}')
 
-                p = subprocess.Popen([sys.executable,
-                                      '-m',
-                                      worker_module],
-                                     stdin=subprocess.DEVNULL,
-                                     close_fds=True
-                                     )
+            p = subprocess.Popen([sys.executable,
+                                  '-m',
+                                  worker_module],
+                                 stdin=subprocess.DEVNULL,
+                                 close_fds=True
+                                 )
 
-                # --- use the worker’s timeout or a global default (e.g., 30 * 60 seconds = 30 min) ---
-                # or use no timeout is a service is detected
-                worker_timeout = None if worker_cycle_time_s == 0 else (getattr(cls, 'worker_timeout_s', None) or 30 * 60)
+            # --- use the worker's timeout or a global default (e.g., 30 * 60 seconds = 30 min) ---
+            # or use no timeout if a service is detected
+            worker_timeout = None if worker_cycle_time_s == 0 else (getattr(cls, 'worker_timeout_s', None) or 30 * 60)
 
-                try:
-                    exec_return_code = p.wait(timeout=worker_timeout)
-                    # Success – process finished within timeout
-                except subprocess.TimeoutExpired:
-                    _log.error(f'Worker {worker_name} timed out after {worker_timeout}s. Killing it.')
-                    p.kill()
-                    # Wait for the process to actually terminate
-                    exec_return_code = p.wait()  # this should return immediately after kill
+            try:
+                exec_return_code = p.wait(timeout=worker_timeout)
+                # Success -- process finished within timeout
+            except subprocess.TimeoutExpired:
+                _log.error(f'Worker {worker_name} timed out after {worker_timeout}s. Killing it.')
+                p.kill()
+                # Wait for the process to actually terminate
+                exec_return_code = p.wait()  # this should return immediately after kill
 
-                timestamp_end = datetime.now().timestamp()
-                exec_duration_s = round(timestamp_end - timestamp_start,2)
-                _log.info(f'Worker process {worker_name} completed in {exec_duration_s}s with'
-                          f' {'✅' if exec_return_code == 0 else '❌'} exec_return_code: {exec_return_code}')
+            timestamp_end = datetime.now().timestamp()
+            exec_duration_s = round(timestamp_end - timestamp_start, 2)
+            _log.info(f'Worker process {worker_name} completed in {exec_duration_s}s with'
+                      f' {"OK" if exec_return_code == 0 else "FAIL"} exec_return_code: {exec_return_code}')
 
-                # do not attempt to insert a db record for a service that was scheduled to exit
-                if not (worker_cycle_time_s == 0 and cls().should_exit()):
+            # do not attempt to insert a db record for a service that was scheduled to exit
+            if not (worker_cycle_time_s == 0 and cls().should_exit()):
 
-                    client.insert_record(table_name='workers_status',
-                                         column_names=['worker_name',
-                                                       'exec_timestamp',
-                                                       'exec_return_code',
-                                                       'exec_duration_s'],
-                                         column_values=[worker_name,
-                                                        timestamp_end,
-                                                        exec_return_code,
-                                                        exec_duration_s])
+                client.insert_record(table_name='workers_status',
+                                     column_names=['worker_name',
+                                                   'exec_timestamp',
+                                                   'exec_return_code',
+                                                   'exec_duration_s'],
+                                     column_values=[worker_name,
+                                                    timestamp_end,
+                                                    exec_return_code,
+                                                    exec_duration_s])
 
-                return exec_return_code
+            return exec_return_code
 
-        except Exception as e:
-            _log.error(f'Unknown error while running {worker_name}: {e}')
+    except Exception as e:
+        _log.error(f'Unknown error while running {worker_name}: {e}')
 
-        finally:
-            worker_manager.remove_worker(worker_name=worker_name)
+    finally:
+        worker_manager.remove_worker(worker_name=worker_name)
 
 def start_workers_relay():
     if DO_NOT_RUN_ANY_WORKER_BOOL:
