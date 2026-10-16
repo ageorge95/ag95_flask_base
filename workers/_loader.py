@@ -8,7 +8,8 @@ def register_worker(_cls=None,
                     *,
                     worker_cycle_time_s,
                     worker_name,
-                    worker_timeout_s=None):
+                    worker_timeout_s=None,
+                    worker_prerequisites=None):
     def decorator(cls):
 
         # opt-out support
@@ -22,6 +23,11 @@ def register_worker(_cls=None,
         cls.worker_module = cls.__module__
         cls.worker_timeout_s = worker_timeout_s
 
+        # attach worker prerequisites (one-shot preparation helpers that
+        # run immediately before this worker is launched)
+        if worker_prerequisites:
+            cls._worker_prerequisites = list(worker_prerequisites)
+
         # register
         WORKERS.append(cls)
         return cls
@@ -31,6 +37,29 @@ def register_worker(_cls=None,
         return decorator
     else:
         return decorator(_cls)
+
+
+def register_worker_prerequisite(workers):
+    """
+    Decorator to tag a worker with one or more prerequisite modules that
+    are run (one-shot, synchronously) immediately before the worker is
+    launched.  Prerequisites are NOT registered in WORKERS and never run
+    on their own.
+
+    Usage ::
+
+        @register_worker(worker_cycle_time_s=0,
+                         worker_name=os.path.basename(__file__).replace('.py', ''))
+        @register_worker_prerequisite(['_template_prerequsite_whitef'])
+        class Worker(WorkerBootstrap):
+            ...
+    """
+    def decorator(cls):
+        # Attach the list to the class object itself
+        cls._worker_prerequisites = list(workers) if workers else []
+        return cls
+    return decorator
+
 
 def load_all_workers():
     """
