@@ -1,6 +1,6 @@
 import os
 import time
-from ._loader import register_worker
+from ._loader import register_worker, register_worker_prerequisite
 from ._bootstrap import WorkerBootstrap
 from logging import getLogger
 from ag95 import configure_logger
@@ -9,6 +9,7 @@ from traceback import format_exc
 # @register_worker(worker_cycle_time_s=5,
 #                  worker_name=os.path.basename(__file__).replace('.py', ''),
 #                  worker_timeout_s=30 * 60) # 30 minutes timeout
+# @register_worker_prerequisite(['_template_prerequsite'])
 class Worker(WorkerBootstrap):
     def __init__(self):
         super().__init__()

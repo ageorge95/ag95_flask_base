@@ -71,14 +71,60 @@ def _get_db_client(port: int) -> SqLiteDbWrapperServiceClient:
                 _db_client = SqLiteDbWrapperServiceClient(port=port)
     return _db_client
 
+
+def _run_worker_prerequisites(cls) -> int:
+    """
+    Run (synchronously, blocking) any prerequisite declared on a worker via
+    @register_worker_prerequisite([...]). Prerequisites are NOT workers and
+    NOT services: they are never executed in a loop on their own. They only
+    run immediately before a worker that references them is launched.
+
+    Returns a non-zero code if a prerequisite failed, 0 otherwise.
+    """
+    prereqs = getattr(cls, '_worker_prerequisites', None)
+    if not prereqs:
+        return 0
+
+    for prereq_name in prereqs:
+        # Treat the name as a (possibly package-qualified) worker-side
+        # module path (e.g. "_template_prerequsite" or
+        # "workers._template_prerequsite"). Resolve to a dotted module name.
+        module_name = prereq_name
+        if '.' not in module_name:
+            module_name = 'workers.' + module_name
+        module_name = module_name.replace('/', '.')
+
+        _log.info(f"Running prerequisite {prereq_name} for worker {cls.worker_name}")
+        try:
+            completed = subprocess.run(
+                [sys.executable, '-m', module_name],
+                stdin=subprocess.DEVNULL,
+                close_fds=True)
+            if completed.returncode != 0:
+                _log.error(f"Prerequisite {prereq_name} exited with code "
+                           f"{completed.returncode}")
+                return completed.returncode
+        except Exception as exc:
+            _log.error(f"Unknown error running prerequisite {prereq_name}: {exc}")
+            return 1
+    return 0
+
+
 def _detached_execution(cls, force: bool = False):
     """
     Function executed by a new thread to start a worker subprocess.
     :param force: If True, always run the worker regardless of cycle time.
+    Before launching the worker, any declared prerequisites are run
+    synchronously (blocking), one-shot, in the order declared.
     """
     worker_name = cls.worker_name
     worker_module = cls.worker_module
     worker_cycle_time_s = cls.worker_cycle_time_s
+
+    # Run any prerequisite BEFORE launching the worker subprocess
+    rc = _run_worker_prerequisites(cls)
+    if rc != 0:
+        return rc
 
     worker_manager.add_worker(worker_name)
 
