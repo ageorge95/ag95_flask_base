@@ -71,9 +71,10 @@ def _get_db_client(port: int) -> SqLiteDbWrapperServiceClient:
                 _db_client = SqLiteDbWrapperServiceClient(port=port)
     return _db_client
 
-def _detached_execution(cls):
+def _detached_execution(cls, force: bool = False):
     """
     Function executed by a new thread to start a worker subprocess.
+    :param force: If True, always run the worker regardless of cycle time.
     """
     worker_name = cls.worker_name
     worker_module = cls.worker_module
@@ -89,7 +90,7 @@ def _detached_execution(cls):
     try:
 
         # get the last execution timestamp
-        if worker_cycle_time_s == 0:
+        if force or worker_cycle_time_s == 0:
             worker__last_exec_timestamp = 0
         else:
             query_result = client.get_records(table_name='workers_status',
@@ -103,7 +104,7 @@ def _detached_execution(cls):
 
         # is it time to run the worker ?
         timestamp_start = datetime.now().timestamp()
-        if (timestamp_start - worker__last_exec_timestamp) > worker_cycle_time_s:
+        if force or (timestamp_start - worker__last_exec_timestamp) > worker_cycle_time_s:
 
             _log.info(f'Starting worker process for: {worker_name}')
 
