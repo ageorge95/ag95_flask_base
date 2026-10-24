@@ -1,9 +1,14 @@
 /.idea
 *.pyc
+/__pycache__
 /venv
 activate.bat
+activate.ps1
+activate.sh
 /exit*
 /logs
 /db_backup*
 /server/templates/*.html
 /db/database
+/build
+/dist

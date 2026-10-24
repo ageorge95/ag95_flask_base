@@ -17,6 +17,7 @@ A minimal, yet extensible boilerplate for building Flask applications with a mod
 
 ```
 ag95_flask_base/
+├── _install/            # Install/update scripts and pip.ini
 ├── db/                  # Database migrations & seed scripts
 │   ├── structure.py     # The database structure
 ├── server/              # Flask application package
@@ -27,7 +28,6 @@ ag95_flask_base/
 ├── requirements.txt     # Python dependencies
 ├── START.py             # Entrypoint to launch server (Python)
 ├── START.bat            # Windows batch script for START.py
-├── Install.bat          # Windows batch script to install dependencies
 └── .gitignore           # Files and directories to ignore
 ```
 
@@ -48,16 +48,37 @@ ag95_flask_base/
    cd ag95_flask_base
    ```
 
-2. **Install dependencies**
+2. **Create the virtual environment and install dependencies**
 
-   ```bash
-   pip install -r requirements.txt
-   ```
-
-   Or on Windows:
+   Windows:
 
    ```bat
-   Install.bat
+   powershell -ExecutionPolicy Bypass -File _install\install.ps1
+   ```
+
+   Linux/macOS:
+
+   ```bash
+   ./_install/install.sh
+   ```
+
+   The script picks a compatible Python, creates `venv`, and installs
+   `requirements.txt` with `uv`. Package indexes are configured in
+   `_install/pip.ini`. It also creates `activate.bat` (cmd) and
+   `activate.ps1` (PowerShell).
+
+3. **Update dependencies later**
+
+   Windows:
+
+   ```bat
+   powershell -ExecutionPolicy Bypass -File _install\update.ps1
+   ```
+
+   Linux/macOS:
+
+   ```bash
+   ./_install/update.sh
    ```
 
 ### Configuration
