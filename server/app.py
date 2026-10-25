@@ -1,7 +1,8 @@
 import os
 from flask import (Flask,
                    url_for)
-from markupsafe import Markup
+from markupsafe import (Markup,
+                        escape)
 from waitress import serve
 from ag95 import export_html_templates
 from .routes import (load_all_blueprints,
@@ -29,10 +30,16 @@ class Server:
                 # skip the rule we are generating right now
                 if rule.endpoint == "root_index":
                     continue
-                href = url_for(rule.endpoint,
-                               **{p: f"<{p}>" for p in rule.arguments})
-                text = f"{rule.rule}  ({rule.endpoint})"
-                links.append(f'<li><a href="{href}">{text}</a></li>')
+
+                text = escape(f"{rule.rule}  ({rule.endpoint})")
+                if rule.arguments:
+                    # url_for() validates the route converters. A literal
+                    # placeholder is invalid for <int:...>, <float:...>, etc.,
+                    # so show parameterized routes as text instead of links.
+                    links.append(f"<li><code>{text}</code></li>")
+                else:
+                    href = escape(url_for(rule.endpoint))
+                    links.append(f'<li><a href="{href}">{text}</a></li>')
             html = "<h1>Registered routes</h1><ul>{}</ul>".format("".join(links))
             return Markup(html)
 
