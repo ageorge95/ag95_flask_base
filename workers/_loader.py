@@ -3,6 +3,7 @@ import pkgutil
 from pathlib import Path
 
 WORKERS = []
+_WORKERS_LOADED = False
 
 def register_worker(_cls=None,
                     *,
@@ -65,7 +66,15 @@ def load_all_workers():
     """
     Dynamically import every .py in this package and all subpackages recursively.
     @register_worker decorators run and populate WORKERS.
+
+    The scan is idempotent per process: several route modules may call this
+    function at import time, and only the first call should scan the package.
     """
+    global _WORKERS_LOADED
+    if _WORKERS_LOADED:
+        return
+    _WORKERS_LOADED = True
+
     package_name = __name__.rsplit(".", 1)[0]  # root package
     package_path = Path(__file__).parent
 
