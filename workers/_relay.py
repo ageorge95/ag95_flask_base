@@ -239,7 +239,13 @@ def start_workers_relay():
                     time.sleep(0.1)
 
             # and finally close all services (including the db ops service)
-            for cls in [_ for _ in WORKERS if _.worker_cycle_time_s == 0]:
+            # NOTE: the db ops service is always closed last, so that workers which
+            #       are still finishing up their final db writes are not cut off
+            services = [_ for _ in WORKERS if _.worker_cycle_time_s == 0]
+            for cls in [_ for _ in services if not _.worker_module.endswith('_service_db_ops')]:
+                cls().exit()
+
+            for cls in [_ for _ in services if _.worker_module.endswith('_service_db_ops')]:
                 cls().exit()
 
             break
